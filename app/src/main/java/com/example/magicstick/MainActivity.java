@@ -36,7 +36,6 @@ import org.xml.sax.SAXException;
 
 import javax.xml.parsers.ParserConfigurationException;
 
-import static java.lang.Thread.sleep;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -180,7 +179,7 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onError(int error) {
-            if(SpeechRecognizer.ERROR_RECOGNIZER_BUSY==8){
+            if(mRecognizer.ERROR_RECOGNIZER_BUSY==8){
                 Log.d(TAG, "ERROR_RECOGNIZER_BUSY");
                 mRecognizer.stopListening();
             }
@@ -191,39 +190,59 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onResults(Bundle results) {
             Log.d(TAG, "STT_Result = " + STT_RESULT);
-            String key = SpeechRecognizer.RESULTS_RECOGNITION;
+            String key = mRecognizer.RESULTS_RECOGNITION;
             ArrayList<String> mResult = results.getStringArrayList(key);
+
             String [] rs = new String[mResult.size()];
             mResult.toArray(rs);
             String speak = rs[0];
 
+            try {
+                mRecognizer.wait(1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
             if(STT_RESULT==0){
+
                 STT_RESULT=1;
-                Log.d(TAG, "목적지 : " + rs[0]);
-                speak = rs[0] + " 를 목적지로 정하시겠어요?";
-                tts.speak(speak,TextToSpeech.QUEUE_FLUSH,null);
                 editText.setText(rs[0]);
+                speak = rs[0] + " 를 목적지로 정하시겠어요?";
+
+                Log.d(TAG, "목적지 : " + rs[0]);
+                tts.speak(speak,TextToSpeech.QUEUE_FLUSH,null);
+
+
                 while(tts.isSpeaking()){
-                    //Log.d(TAG, "wait for speaking");
-                    mRecognizer.stopListening();
+                    //mRecognizer.stopListening();
                 }
+
                 //mRecognizer.stopListening();
-                mRecognizer.startListening(intent);
-            }else{
                 toast("대답");
+                mRecognizer.startListening(intent);
+
+            }else{
+                Log.d(TAG, rs[0]);
+                while(rs[0]==null){}
+
                 if(rs[0].equals("네")){
-                    Log.d(TAG, "get 네");
+
+                    Log.d(TAG, "네");
+
                     tts.shutdown();
                     mRecognizer.stopListening();
                     mRecognizer.destroy();
-                    Intent intent = new Intent(getApplicationContext(), NavigationActivity.class);
-                    intent.putExtra("destination", editText.getText().toString());
-                    startActivity(intent);
+
+                    Intent intent1 = new Intent(getApplicationContext(), NavigationActivity.class);
+                    intent1.putExtra("destination", editText.getText().toString());
+                    startActivity(intent1);
+
                 }else{
                     Log.d(TAG, "REASK");
+
                     STT_RESULT=0;
-                    editText.setText("");
-                    toast("목적지 말해요");
+                    //editText.setText("");
+                    toast("목적지 재설정");
                     //mRecognizer.stopListening();
                     mRecognizer.startListening(intent);
                 }
