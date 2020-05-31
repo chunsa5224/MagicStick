@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="array_object">
+        <item>자동차</item>
+        <item>방지턱</item>
+        <item>도로안정봉</item>
+    </string-array>
+</resources>
