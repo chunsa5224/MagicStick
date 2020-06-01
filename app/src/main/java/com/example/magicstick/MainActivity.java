@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
+import android.speech.RecognitionService;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.speech.RecognitionListener;
@@ -44,8 +45,8 @@ public class MainActivity extends AppCompatActivity {
     SpeechRecognizer mRecognizer;
     final String TAG = getClass().getName();
     EditText editText;
-    int STT_RESULT =0;
     TextToSpeech tts;
+
 
 
     @Override
@@ -87,7 +88,7 @@ public class MainActivity extends AppCompatActivity {
         voiceBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                toast("음성인식");
+
                 try {
                     inputVoice();
                 } catch(SecurityException e) {
@@ -108,6 +109,7 @@ public class MainActivity extends AppCompatActivity {
         mRecognizer = SpeechRecognizer.createSpeechRecognizer(getApplicationContext());
         mRecognizer.setRecognitionListener(listener);
         mRecognizer.startListening(intent);
+
     }
 
     @Override
@@ -153,8 +155,12 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
+
     //음성인식
     private RecognitionListener listener = new RecognitionListener() {
+
+        boolean doubleResult =true;
+        int STT_RESULT =0;
 
         @Override
         public void onReadyForSpeech(Bundle params){
@@ -162,6 +168,9 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onBeginningOfSpeech() {
+            doubleResult =false;
+            STT_RESULT++;
+            toast("말하세요");
             Log.d(TAG, "onBeginningOfSpeech");
         }
 
@@ -181,74 +190,68 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onError(int error) {
-            if(mRecognizer.ERROR_RECOGNIZER_BUSY==8){
-                Log.d(TAG, "ERROR_RECOGNIZER_BUSY");
-                mRecognizer.stopListening();
-                //mRecognizer.destroy();
-                //mRecognizer.startListening(intent);
+
+            String message;
+            switch (error) {
+                case SpeechRecognizer.ERROR_AUDIO:
+                    message = "오디오 에러";
+                    break;
+                case SpeechRecognizer.ERROR_CLIENT:
+                    message = "클라이언트 에러";
+                    break;
+                case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS:
+                    message = "퍼미션 없음";
+                    break;
+                case SpeechRecognizer.ERROR_NETWORK:
+                    message = "네트워크 에러";
+                    break;
+                case SpeechRecognizer.ERROR_NETWORK_TIMEOUT:
+                    message = "네트웍 타임아웃";
+                    break;
+                case SpeechRecognizer.ERROR_NO_MATCH:
+                    message = "찾을 수 없음";
+                    break;
+                case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
+                    message = "RECOGNIZER가 바쁨";
+                    break;
+                case SpeechRecognizer.ERROR_SERVER:
+                    message = "서버가 이상함";
+                    break;
+                case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
+                    message = "말하는 시간초과";
+                    break;
+                default:
+                    message = "알 수 없는 오류임";
+                    break;
             }
-            Log.d(TAG, "error " + error);
+            Log.d(TAG, "error " + message);
             toast("error");
+            //mRecognizer.cancel();
+            mRecognizer.startListening(intent);
         }
 
         @Override
         public void onResults(Bundle results) {
-            Log.d(TAG, "STT_Result = " + STT_RESULT);
-            String key = SpeechRecognizer.RESULTS_RECOGNITION;
-            ArrayList<String> mResult = results.getStringArrayList(key);
-            String [] rs = new String[mResult.size()];
-            mResult.toArray(rs);
-            String speak = rs[0];
-
-            Log.d(TAG, "rs[0] : "+rs[0]);
-
-            if(STT_RESULT==0){
-
-                STT_RESULT=1;
+            Log.d(TAG, doubleResult+" access ");
+            if(!doubleResult){
+                Log.d(TAG, "STT_Result = " + STT_RESULT);
+                String key = "";
+                key = SpeechRecognizer.RESULTS_RECOGNITION;
+                ArrayList<String> mResult = results.getStringArrayList(key);
+                String [] rs = new String[mResult.size()];
+                mResult.toArray(rs);
                 editText.setText(rs[0]);
-                speak = rs[0] + " 를 목적지로 정하시겠어요?";
 
-                Log.d(TAG, "목적지 : " + rs[0]);
-                tts.speak(speak,TextToSpeech.QUEUE_FLUSH,null);
+                Log.d(TAG, "rs[0] : "+rs[0]);
+                doubleResult=true;
 
-
-                while(tts.isSpeaking()){
-                    mRecognizer.stopListening();
-                }
-                Log.d(TAG, "end of speaking");
-                toast("대답");
-                //mRecognizer.destroy();
-
-            }else{
-                Log.d(TAG, rs[0]);
-
-                /*if(rs[0].equals("네")){
-
-                    Log.d(TAG, "네");
-
-                    tts.shutdown();
-                    mRecognizer.stopListening();
+                if(rs[0].equals("그만")){
                     mRecognizer.destroy();
-
-                    Intent intent1 = new Intent(getApplicationContext(), NavigationActivity.class);
-                    intent1.putExtra("destination", editText.getText().toString());
-                    startActivity(intent1);
-
+                    Log.d(TAG, "mRecognizer.destroy");
                 }else{
-                    Log.d(TAG, "REASK");
-                    STT_RESULT=0;
-                    //editText.setText("");
-                    toast("목적지 재설정");
-
-                    //mRecognizer.startListening(intent);
-                }*/
-
+                    mRecognizer.startListening(intent);
+                }
             }
-            Log.d(TAG, "start !");
-
-            mRecognizer.startListening(intent);
-
-
         }
 
         @Override
