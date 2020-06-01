@@ -6,7 +6,6 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Build;
 import android.os.Bundle;
-import android.speech.RecognitionService;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.speech.RecognitionListener;
@@ -48,7 +47,6 @@ public class MainActivity extends AppCompatActivity {
     TextToSpeech tts;
 
 
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -88,7 +86,6 @@ public class MainActivity extends AppCompatActivity {
         voiceBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
                 try {
                     inputVoice();
                 } catch(SecurityException e) {
@@ -109,7 +106,6 @@ public class MainActivity extends AppCompatActivity {
         mRecognizer = SpeechRecognizer.createSpeechRecognizer(getApplicationContext());
         mRecognizer.setRecognitionListener(listener);
         mRecognizer.startListening(intent);
-
     }
 
     @Override
@@ -155,7 +151,6 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-
     //음성인식
     private RecognitionListener listener = new RecognitionListener() {
 
@@ -169,7 +164,6 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onBeginningOfSpeech() {
             doubleResult =false;
-            STT_RESULT++;
             toast("말하세요");
             Log.d(TAG, "onBeginningOfSpeech");
         }
@@ -232,26 +226,65 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onResults(Bundle results) {
-            Log.d(TAG, doubleResult+" access ");
             if(!doubleResult){
                 Log.d(TAG, "STT_Result = " + STT_RESULT);
-                String key = "";
-                key = SpeechRecognizer.RESULTS_RECOGNITION;
+                String key = SpeechRecognizer.RESULTS_RECOGNITION;
                 ArrayList<String> mResult = results.getStringArrayList(key);
                 String [] rs = new String[mResult.size()];
                 mResult.toArray(rs);
-                editText.setText(rs[0]);
+                String speak = rs[0];
 
                 Log.d(TAG, "rs[0] : "+rs[0]);
                 doubleResult=true;
 
-                if(rs[0].equals("그만")){
-                    mRecognizer.destroy();
-                    Log.d(TAG, "mRecognizer.destroy");
-                }else{
+                if(STT_RESULT==0){
+
+                    STT_RESULT=1;
+                    editText.setText(rs[0]);
+                    speak = rs[0] + " 를 목적지로 정하시겠어요?";
+
+                    Log.d(TAG, "목적지 : " + rs[0]);
+                    tts.speak(speak,TextToSpeech.QUEUE_FLUSH,null);
+
+
+                    while(tts.isSpeaking()){
+                        mRecognizer.stopListening();
+                    }
+                    Log.d(TAG, "end of speaking");
+                    toast("대답");
                     mRecognizer.startListening(intent);
+
+                }else{
+                    Log.d(TAG, rs[0]);
+
+                    if(rs[0].equals("네")){
+
+                        Log.d(TAG, "네");
+
+                        tts.shutdown();
+                        mRecognizer.destroy();
+
+                        Intent intent1 = new Intent(getApplicationContext(), NavigationActivity.class);
+                        intent1.putExtra("destination", editText.getText().toString());
+                        startActivity(intent1);
+
+                    }else{
+                        Log.d(TAG, "REASK");
+                        STT_RESULT=0;
+                        //editText.setText("");
+                        toast("목적지 재설정");
+
+                        mRecognizer.startListening(intent);
+                    }
+
                 }
+
             }
+            Log.d(TAG, "start !");
+
+
+
+
         }
 
         @Override
