@@ -4,8 +4,10 @@ import android.Manifest;
 
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.speech.RecognitionListener;
@@ -45,6 +47,8 @@ public class MainActivity extends AppCompatActivity {
     final String TAG = getClass().getName();
     EditText editText;
     TextToSpeech tts;
+    Handler handler = new Handler();
+    Runnable runnable;
 
 
     @Override
@@ -106,6 +110,12 @@ public class MainActivity extends AppCompatActivity {
         mRecognizer = SpeechRecognizer.createSpeechRecognizer(getApplicationContext());
         mRecognizer.setRecognitionListener(listener);
         mRecognizer.startListening(intent);
+        runnable= new Runnable() {
+            @Override
+            public void run() {
+                mRecognizer.startListening(intent);
+            }
+        };
     }
 
     @Override
@@ -159,23 +169,20 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onReadyForSpeech(Bundle params){
+            toast("말하세요");
         }
 
         @Override
         public void onBeginningOfSpeech() {
             doubleResult =false;
-            toast("말하세요");
             Log.d(TAG, "onBeginningOfSpeech");
         }
 
         @Override
-        public void onRmsChanged(float rmsdB) {
-        }
+        public void onRmsChanged(float rmsdB) {}
 
         @Override
-        public void onBufferReceived(byte[] buffer) {
-
-        }
+        public void onBufferReceived(byte[] buffer) {}
 
         @Override
         public void onEndOfSpeech() {
@@ -207,6 +214,7 @@ public class MainActivity extends AppCompatActivity {
                     break;
                 case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
                     message = "RECOGNIZER가 바쁨";
+                    mRecognizer.stopListening();
                     break;
                 case SpeechRecognizer.ERROR_SERVER:
                     message = "서버가 이상함";
@@ -220,48 +228,49 @@ public class MainActivity extends AppCompatActivity {
             }
             Log.d(TAG, "error " + message);
             toast("error");
-            //mRecognizer.cancel();
-            mRecognizer.startListening(intent);
+
+            if(error!=SpeechRecognizer.ERROR_RECOGNIZER_BUSY){
+                mRecognizer.startListening(intent);
+            }
         }
 
         @Override
         public void onResults(Bundle results) {
+
             if(!doubleResult){
+
                 Log.d(TAG, "STT_Result = " + STT_RESULT);
+
                 String key = SpeechRecognizer.RESULTS_RECOGNITION;
                 ArrayList<String> mResult = results.getStringArrayList(key);
                 String [] rs = new String[mResult.size()];
                 mResult.toArray(rs);
-                String speak = rs[0];
-
-                Log.d(TAG, "rs[0] : "+rs[0]);
+                String speak = "";
                 doubleResult=true;
 
-                if(STT_RESULT==0){
+                Log.d(TAG, "rs[0] : "+rs[0]);
 
-                    STT_RESULT=1;
+                if(STT_RESULT==0){
                     editText.setText(rs[0]);
+                    mRecognizer.stopListening();
+                    STT_RESULT=1;
                     speak = rs[0] + " 를 목적지로 정하시겠어요?";
 
                     Log.d(TAG, "목적지 : " + rs[0]);
                     tts.speak(speak,TextToSpeech.QUEUE_FLUSH,null);
 
-
-                    while(tts.isSpeaking()){
-                        mRecognizer.stopListening();
-                    }
-                    Log.d(TAG, "end of speaking");
-                    toast("대답");
-                    mRecognizer.startListening(intent);
+                    new Waiter().execute();
 
                 }else{
                     Log.d(TAG, rs[0]);
 
                     if(rs[0].equals("네")){
 
-                        Log.d(TAG, "네");
+                        Log.d(TAG, "Navigation activity will start");
+                        STT_RESULT=0;
 
-                        tts.shutdown();
+                        mRecognizer.stopListening();
+                        mRecognizer.cancel();
                         mRecognizer.destroy();
 
                         Intent intent1 = new Intent(getApplicationContext(), NavigationActivity.class);
@@ -269,22 +278,18 @@ public class MainActivity extends AppCompatActivity {
                         startActivity(intent1);
 
                     }else{
-                        Log.d(TAG, "REASK");
+                        Log.d(TAG, "Ask again");
                         STT_RESULT=0;
-                        //editText.setText("");
-                        toast("목적지 재설정");
+                        editText.setText("");
 
-                        mRecognizer.startListening(intent);
+                        tts.speak("목적지를 다시 말해주세요",TextToSpeech.QUEUE_FLUSH,null);
+
+                        new Waiter().execute();
                     }
 
                 }
 
             }
-            Log.d(TAG, "start !");
-
-
-
-
         }
 
         @Override
@@ -299,8 +304,29 @@ public class MainActivity extends AppCompatActivity {
     };
 
 
+
     private void toast(String msg){
         Toast.makeText(this,msg, Toast.LENGTH_LONG).show();
     }
 
+
+    class Waiter extends AsyncTask<Void,Void,Void>{
+
+        @Override
+        protected Void doInBackground(Void... voids) {
+
+            while(tts.isSpeaking()){
+                try{Thread.sleep(1000); Log.d(TAG, "tts is speaking now...");}catch (Exception e){}
+            }
+
+            Log.d(TAG, "tts is done.");
+            handler.post(runnable);
+            return null;
+        }
+
+        @Override
+        protected void onPostExecute(Void aVoid){
+            super.onPostExecute(aVoid);
+        }
+    }
 }
