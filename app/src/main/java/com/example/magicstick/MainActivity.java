@@ -83,22 +83,13 @@ public class MainActivity extends AppCompatActivity {
         tts.setPitch(1.0f);
         tts.setSpeechRate(1.0f);
 
-
-        //음성인식
-        intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getApplicationContext().getPackageName());
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE,"ko-KR");
-        mRecognizer = SpeechRecognizer.createSpeechRecognizer(getApplicationContext());
-        mRecognizer.setRecognitionListener(listener);
-
-
         ImageButton voiceBtn = findViewById(R.id.search_voice_btn);
         voiceBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 toast("음성인식");
                 try {
-                    mRecognizer.startListening(intent);
+                    inputVoice();
                 } catch(SecurityException e) {
                     e.printStackTrace();
                 }
@@ -106,6 +97,17 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+    }
+
+    public void inputVoice(){
+        //음성인식
+        intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        //intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS,5000);
+        intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getApplicationContext().getPackageName());
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE,"ko-KR");
+        mRecognizer = SpeechRecognizer.createSpeechRecognizer(getApplicationContext());
+        mRecognizer.setRecognitionListener(listener);
+        mRecognizer.startListening(intent);
     }
 
     @Override
@@ -182,6 +184,8 @@ public class MainActivity extends AppCompatActivity {
             if(mRecognizer.ERROR_RECOGNIZER_BUSY==8){
                 Log.d(TAG, "ERROR_RECOGNIZER_BUSY");
                 mRecognizer.stopListening();
+                //mRecognizer.destroy();
+                //mRecognizer.startListening(intent);
             }
             Log.d(TAG, "error " + error);
             toast("error");
@@ -190,18 +194,13 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onResults(Bundle results) {
             Log.d(TAG, "STT_Result = " + STT_RESULT);
-            String key = mRecognizer.RESULTS_RECOGNITION;
+            String key = SpeechRecognizer.RESULTS_RECOGNITION;
             ArrayList<String> mResult = results.getStringArrayList(key);
-
             String [] rs = new String[mResult.size()];
             mResult.toArray(rs);
             String speak = rs[0];
 
-            try {
-                mRecognizer.wait(1);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
+            Log.d(TAG, "rs[0] : "+rs[0]);
 
             if(STT_RESULT==0){
 
@@ -214,18 +213,16 @@ public class MainActivity extends AppCompatActivity {
 
 
                 while(tts.isSpeaking()){
-                    //mRecognizer.stopListening();
+                    mRecognizer.stopListening();
                 }
-
-                //mRecognizer.stopListening();
+                Log.d(TAG, "end of speaking");
                 toast("대답");
-                mRecognizer.startListening(intent);
+                //mRecognizer.destroy();
 
             }else{
                 Log.d(TAG, rs[0]);
-                while(rs[0]==null){}
 
-                if(rs[0].equals("네")){
+                /*if(rs[0].equals("네")){
 
                     Log.d(TAG, "네");
 
@@ -239,15 +236,18 @@ public class MainActivity extends AppCompatActivity {
 
                 }else{
                     Log.d(TAG, "REASK");
-
                     STT_RESULT=0;
                     //editText.setText("");
                     toast("목적지 재설정");
-                    //mRecognizer.stopListening();
-                    mRecognizer.startListening(intent);
-                }
+
+                    //mRecognizer.startListening(intent);
+                }*/
 
             }
+            Log.d(TAG, "start !");
+
+            mRecognizer.startListening(intent);
+
 
         }
 
