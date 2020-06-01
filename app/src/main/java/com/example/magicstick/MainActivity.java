@@ -222,7 +222,7 @@ public class MainActivity extends AppCompatActivity {
             }else{
                 Log.d(TAG, rs[0]);
 
-                /*if(rs[0].equals("네")){
+                if(rs[0].equals("네")){
 
                     Log.d(TAG, "네");
 
@@ -241,7 +241,7 @@ public class MainActivity extends AppCompatActivity {
                     toast("목적지 재설정");
 
                     //mRecognizer.startListening(intent);
-                }*/
+                }
 
             }
             Log.d(TAG, "start !");
