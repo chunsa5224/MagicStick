@@ -90,8 +90,13 @@ public class MainActivity extends AppCompatActivity {
         voiceBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
+                //임시
+                Intent intent1 = new Intent(getApplicationContext(), NavigationActivity.class);
+                intent1.putExtra("destination", "공덕역 6번출구");
+                startActivity(intent1);
+
                 try {
-                    inputVoice();
+                    //inputVoice();
                 } catch(SecurityException e) {
                     e.printStackTrace();
                 }
