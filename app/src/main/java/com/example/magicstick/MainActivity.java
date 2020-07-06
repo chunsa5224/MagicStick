@@ -2,12 +2,15 @@ package com.example.magicstick;
 
 import android.Manifest;
 
+import android.bluetooth.BluetoothAdapter;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.preference.PreferenceManager;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
 import android.speech.RecognitionListener;
@@ -49,6 +52,10 @@ public class MainActivity extends AppCompatActivity {
     TextToSpeech tts;
     Handler handler = new Handler();
     Runnable runnable;
+    boolean ttsFlag = true;
+    boolean bluetoothFlag = false;
+    private static final int REQUEST_ENABLE_BT = 10; // 블루투스 활성화 상태
+    BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
 
     @Override
@@ -58,6 +65,7 @@ public class MainActivity extends AppCompatActivity {
         editText = (EditText)findViewById(R.id.editText);
         //final TMapData tMapData = new TMapData();
 
+        //Setting 값 들고오는 부분
 
         //권한 요청
         if(Build.VERSION.SDK_INT>=23){
@@ -72,6 +80,15 @@ public class MainActivity extends AppCompatActivity {
         }else{
             Toast.makeText(this, "이 앱이 마이크와 위치에 접근하도록 허용합니다.",Toast.LENGTH_SHORT);
             Log.d(TAG, "Permissions are granted");
+        }
+
+        if(mBluetoothAdapter==null){
+            //블루투스 안되는 기종
+        }else{
+            if(!mBluetoothAdapter.isEnabled()){
+                Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+            }
         }
 
         //음성출력
@@ -104,6 +121,15 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        ttsFlag=sharedPreferences.getBoolean("voice_notification",false);
+        bluetoothFlag = sharedPreferences.getBoolean("bluetooth",false);
+        Log.d(TAG, "ttsFlag is " + ttsFlag);
     }
 
     public void inputVoice(){
