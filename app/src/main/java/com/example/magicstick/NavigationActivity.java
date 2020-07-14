@@ -40,7 +40,9 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
     TMapPoint endPoint;
     Handler handler = new Handler();
     Runnable runnable;
-
+    int index=-1;
+    String [] navigation ;
+    String [] coordinates;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -125,7 +127,22 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
         if(m_bTrackingMode){
             tMapView.setLocationPoint(location.getLongitude(),location.getLatitude());
         }
-        startPoint = new TMapPoint(location.getLatitude(), location.getLongitude());
+        if(index==-1){
+            startPoint = new TMapPoint(location.getLatitude(), location.getLongitude());
+            index++;
+        }
+
+        if(coordinates!=null){
+            Log.d(TAG,"coordinates : " + coordinates[0]);
+            if(location.getLatitude() == Double.parseDouble(coordinates[index].split(",")[0])
+                    && location.getLongitude() == Double.parseDouble(coordinates[index].split(",")[1]) ){
+                Log.d(TAG, "Current Navigation : " + navigation[index]);
+                index++;
+            }
+        }
+
+
+
         Log.d(TAG, "onLocationChange : " + startPoint.getLatitude() +" , " + startPoint.getLongitude());
     }
 
@@ -136,17 +153,33 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
         tMapData.findPathDataAllType(TMapData.TMapPathType.PEDESTRIAN_PATH, startPoint, endPoint, new TMapData.FindPathDataAllListenerCallback() {
             @Override
             public void onFindPathDataAll(Document document) {
+
                 Element root = document.getDocumentElement();
+
                 NodeList nodeListPlacemark = root.getElementsByTagName("Placemark");
+                Log.d(TAG,"Root element :" + root.getNodeName());
+
                 for( int i=0; i<nodeListPlacemark.getLength(); i++ ) {
                     NodeList nodeListPlacemarkItem = nodeListPlacemark.item(i).getChildNodes();
-                    for( int j=0; j<nodeListPlacemarkItem.getLength(); j++ ) {
-                        if( nodeListPlacemarkItem.item(j).getNodeName().equals("description") ) {
-                            Log.d(TAG, "Navigation : " + nodeListPlacemarkItem.item(j).getTextContent().trim() );
 
+                    coordinates=new String [nodeListPlacemarkItem.getLength()];
+                    navigation=new String [nodeListPlacemarkItem.getLength()];
+
+                    for( int j=0; j<nodeListPlacemarkItem.getLength(); j++ ) {
+                        if( nodeListPlacemarkItem.item(j).getNodeName().equals("Point") ) {
+                            String n = nodeListPlacemarkItem.item(j).getTextContent().trim();
+                            Log.d(TAG, "location : " + n);
+                            coordinates[j]=n;
+                        }
+                         if( nodeListPlacemarkItem.item(j).getNodeName().equals("description") ) {
+                             String n = nodeListPlacemarkItem.item(j).getTextContent().trim();
+                             Log.d(TAG, "Navigation : " + n);
+                             navigation[j] = n;
                         }
                     }
+
                 }
+
             }
 
         });
