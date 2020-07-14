@@ -3,7 +3,11 @@ package com.example.magicstick;
 import android.Manifest;
 
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.os.AsyncTask;
@@ -19,14 +23,17 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.ArrayAdapter;
 import android.widget.EditText;
 import android.widget.ImageButton;
 
 import android.widget.Toast;
 
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.util.ArrayList;
 import java.util.Locale;
+import java.util.Set;
 
 
 import androidx.annotation.NonNull;
@@ -88,8 +95,12 @@ public class MainActivity extends AppCompatActivity {
             if(!mBluetoothAdapter.isEnabled()){
                 Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
                 startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
+
+
+
             }
         }
+
 
         //음성출력
         tts = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {

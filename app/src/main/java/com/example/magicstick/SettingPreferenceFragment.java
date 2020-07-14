@@ -1,6 +1,7 @@
 package com.example.magicstick;
 
 import android.bluetooth.BluetoothAdapter;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.ListPreference;
@@ -40,12 +41,21 @@ public class SettingPreferenceFragment extends PreferenceFragment {
                 if(prefs.getBoolean("bluetooth",true)){
                     Log.d(getClass().getName(), "Bluetooth on");
                     mBluetoothAdapter.enable();
+                    Intent intent = new Intent(bluetooth_main.BLUETOOTH_SERVICE);
+                    startActivityForResult(intent,0);
+
+
                 }else{
                     Log.d(getClass().getName(), "Bluetooth off");
                     mBluetoothAdapter.disable();
                 }
+
+
+
+
             }
         }
     };
+
 
 }
