@@ -102,24 +102,29 @@ public class MainActivity extends AppCompatActivity {
         });
         tts.setPitch(1.0f);
         tts.setSpeechRate(1.0f);
+        View view = findViewById(R.id.background_view);
+        view.setOnTouchListener(new OnSwipeTouchListener(this) {
+                    public void onSwipeTop() {
+                        toast("swipe top");
+                        //목적지 음성 입력 시작
+                        Intent intent1 = new Intent(getApplicationContext(), NavigationActivity.class);
+                        intent1.putExtra("destination", "풍산역");
+                        startActivity(intent1);
 
-        ImageButton voiceBtn = findViewById(R.id.search_voice_btn);
-        voiceBtn.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                //임시
-                Intent intent1 = new Intent(getApplicationContext(), NavigationActivity.class);
-                intent1.putExtra("destination", "공덕역 6번출구");
-                startActivity(intent1);
+                        try {
+                            //inputVoice();
+                        } catch(SecurityException e) {
+                            e.printStackTrace();
+                        }
+                    }
+                    public void onSwipeBottom() {
+                        toast("swipe bottom");
+                        //블루투스 On
+                    }
 
-                try {
-                    //inputVoice();
-                } catch(SecurityException e) {
-                    e.printStackTrace();
                 }
 
-            }
-        });
+        );
 
     }
 
@@ -360,4 +365,5 @@ public class MainActivity extends AppCompatActivity {
             super.onPostExecute(aVoid);
         }
     }
+
 }
