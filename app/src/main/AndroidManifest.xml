@@ -20,17 +20,16 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
         <activity android:name=".bluetooth_connect">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
         </activity>
         <activity android:name=".bluetooth_talk" />
         <activity android:name=".bluetooth_main" />
         <activity android:name=".NavigationActivity" />
         <activity android:name=".MainActivity">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
 
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
         </activity>
         <activity android:name=".SettingActivity" />
     </application>

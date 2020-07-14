@@ -15,7 +15,7 @@ public class bluetooth_main extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_bluetooth_main);
 
         // 버튼 객체 생성 및 xml id 연결
         Button button_connect_bluetooth = (Button) findViewById(R.id.button_connect_bluetooth);

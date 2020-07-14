@@ -41,7 +41,7 @@ public class SettingPreferenceFragment extends PreferenceFragment {
                 if(prefs.getBoolean("bluetooth",true)){
                     Log.d(getClass().getName(), "Bluetooth on");
                     mBluetoothAdapter.enable();
-                    Intent intent = new Intent(bluetooth_main.BLUETOOTH_SERVICE);
+                    Intent intent = new Intent(getActivity(),bluetooth_main.class);
                     startActivityForResult(intent,0);
 
 
