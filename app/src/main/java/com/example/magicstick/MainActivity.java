@@ -1,7 +1,10 @@
 package com.example.magicstick;
 
 import android.Manifest;
+import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
+import android.bluetooth.BluetoothDevice;
+import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -9,6 +12,7 @@ import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Message;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.speech.RecognitionListener;
@@ -33,8 +37,13 @@ import com.skt.Tmap.TMapPOIItem;
 import org.xml.sax.SAXException;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+import java.util.Set;
+import java.util.UUID;
 
 import javax.xml.parsers.ParserConfigurationException;
 
@@ -47,12 +56,34 @@ public class MainActivity extends AppCompatActivity {
     final String TAG = getClass().getName();
     EditText editText;
     TextToSpeech tts;
-    Handler handler = new Handler();
     Runnable runnable;
     boolean ttsFlag = true;
     boolean bluetoothFlag = false;
     private static final int REQUEST_ENABLE_BT = 10; // 블루투스 활성화 상태
-    BluetoothAdapter mBluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+    BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+
+    // onActivity Result의 RequestCode 식별자
+
+    // 블루투스 사용 객체
+
+    private BluetoothDevice bluetoothDevice;
+    private Set<BluetoothDevice> bluetoothDeviceSet;
+    private BluetoothSocket bluetoothSocket;
+    public static InputStream inputStream;
+    public static OutputStream outputStream;
+    private Thread workerThread = null; // 문자열 수신에 사용되는 쓰레드
+
+    private byte[] readBuffer; // 수신 된 문자열을 저장하기 위한 버퍼
+
+    private int readBufferPosition; // 버퍼 내 문자 저장 위치
+    private int checknumber=0;
+
+
+
+
+
+
+
 
 
     @Override
@@ -79,15 +110,18 @@ public class MainActivity extends AppCompatActivity {
             Log.d(TAG, "Permissions are granted");
         }
 
-        if(mBluetoothAdapter==null){
-            //블루투스 안되는 기종
+        if(bluetoothAdapter==null){
+            Toast.makeText(getApplicationContext(), "단말기가 블루투스를 지원하지 않습니다.", Toast.LENGTH_LONG).show();
+            finish(); // 앱 종료
         }else{
-            if(!mBluetoothAdapter.isEnabled()){
-                Intent enableBtIntent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                startActivityForResult(enableBtIntent, REQUEST_ENABLE_BT);
-
-
-
+            if(bluetoothAdapter.isEnabled()){
+                Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                startActivityForResult(intent, REQUEST_ENABLE_BT);
+            }
+            else{
+                //블루투스 활성화
+                Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+                startActivityForResult(intent, REQUEST_ENABLE_BT);
             }
         }
 
@@ -109,7 +143,7 @@ public class MainActivity extends AppCompatActivity {
                         toast("swipe top");
                         //목적지 음성 입력 시작
                         Intent intent1 = new Intent(getApplicationContext(), NavigationActivity.class);
-                        intent1.putExtra("destination", "풍산역");
+                        intent1.putExtra("destination", "공릉역");
                         startActivity(intent1);
 
                         try {
@@ -121,9 +155,36 @@ public class MainActivity extends AppCompatActivity {
                     public void onSwipeBottom() {
                         toast("swipe bottom");
                         //블루투스 On
-                        mBluetoothAdapter.enable();
-                        Intent intent = new Intent(Settings.ACTION_BLUETOOTH_SETTINGS);
-                        startActivity(intent);
+                        bluetoothAdapter.enable();
+                        CheckTypesTask task = new CheckTypesTask();
+                        task.execute();
+
+
+                    }
+
+                    public void onSwipeRight() {
+                        toast("swipe Right");
+                        if (bluetoothDevice == null){
+                            toast("no connection Bluetooth");
+                            return;
+                        }
+                        else {
+                            toast("start Object Detection");
+                            try{
+                                receiveData();
+                            }catch (Exception e){
+                                // 쓰레드에서 UI처리를 위한 핸들러
+                                Message msg = handler.obtainMessage();
+                                handler.sendMessage(msg);
+                                Intent intent = new Intent(Settings.ACTION_BLUETOOTH_SETTINGS);
+                                startActivity(intent);
+                            }
+                        }
+                    }
+
+                    public void onSwipeLeft(){
+                        toast("swipe Left");
+
                     }
 
                 }
@@ -131,6 +192,152 @@ public class MainActivity extends AppCompatActivity {
         );
 
     }
+
+    //프로그래스 다이얼로그 생성
+// 프로그레스 다이얼로그 생성
+    private class CheckTypesTask extends AsyncTask<Void, Void, Void> {
+        ProgressDialog asyncDialog = new ProgressDialog(
+                MainActivity.this);
+        private String device_name = "raspberrypi";
+        @Override
+        protected void onPreExecute() {
+            asyncDialog.setCancelable(false);
+            asyncDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
+            asyncDialog.setMessage(device_name + "에 연결중입니다.");
+
+            // show dialog
+            asyncDialog.show();
+            super.onPreExecute();
+        }
+
+        // 백그라운드에서 실행
+        @Override
+        protected Void doInBackground(Void... arg0) {
+
+            bluetoothDeviceSet = bluetoothAdapter.getBondedDevices();
+
+            // 리스트를 만듬
+            List<String> list = new ArrayList<>();
+            for(BluetoothDevice bluetoothDevice : bluetoothDeviceSet) {
+                list.add(bluetoothDevice.getName());
+            }
+            connectDevice(device_name);
+            return null;
+        }
+
+        // 백그라운드가 모두 끝난 후 실행
+        @Override
+        protected void onPostExecute(Void result) {
+            asyncDialog.dismiss();
+            super.onPostExecute(result);
+        }
+    }
+
+    // 클릭 된 디바이스와 연결하는 함수
+    public void connectDevice(String deviceName) {
+        // 블루투스 연결 할 디바이스를 찾음
+
+        for(BluetoothDevice device : bluetoothDeviceSet) {
+            if(device.getName().contains(deviceName)) {
+                bluetoothDevice = device;
+                checknumber=1;
+                break;
+            }
+        }
+
+        // UUID 생성
+        UUID uuid = java.util.UUID.fromString("00000003-0000-1000-8000-00805F9B34FB");
+
+        try {
+            // 블루투스 소켓 생성
+            bluetoothSocket = bluetoothDevice.createRfcommSocketToServiceRecord(uuid);
+            bluetoothSocket.connect();
+            // 데이터 받기 위해 인풋스트림 생성
+            outputStream = bluetoothSocket.getOutputStream();
+            inputStream = bluetoothSocket.getInputStream();
+
+            // 블루투스 수신 시작 호출
+            //Intent intent = new Intent(bluetooth_connect.this, bluetooth_talk.class);
+            //startActivity(intent);
+        } catch (Exception e) {
+            // 쓰레드에서 UI처리를 위한 핸들러
+            Message msg = handler.obtainMessage();
+            handler.sendMessage(msg);
+            Intent intent = new Intent(Settings.ACTION_BLUETOOTH_SETTINGS);
+            startActivity(intent);
+        }
+
+    }
+
+    public void receiveData() {
+        final Handler hand = new Handler();
+        // 데이터를 수신하기 위한 버퍼를 생성
+        readBufferPosition = 0;
+        readBuffer = new byte[1024];
+        // 데이터를 수신하기 위한 쓰레드 생성
+        workerThread = new Thread(new Runnable() {
+
+            @Override
+
+            public void run() {
+                while(Thread.currentThread().isInterrupted()) {
+                    try {
+                        // 데이터를 수신했는지 확인합니다.
+                        int byteAvailable = inputStream.available();
+                        // 데이터가 수신 된 경우
+                        if(byteAvailable > 0) {
+                            // 입력 스트림에서 바이트 단위로 읽어 옵니다.
+                            byte[] bytes = new byte[byteAvailable];
+                            inputStream.read(bytes);
+                            // 입력 스트림 바이트를 한 바이트씩 읽어 옵니다.
+                            for(int i = 0; i < byteAvailable; i++) {
+                                byte tempByte = bytes[i];
+                                // 개행문자를 기준으로 받음(한줄)
+                                if(tempByte == '\n') {
+                                    // readBuffer 배열을 encodedBytes로 복사
+                                    byte[] encodedBytes = new byte[readBufferPosition];
+                                    System.arraycopy(readBuffer, 0, encodedBytes, 0, encodedBytes.length);
+                                    // 인코딩 된 바이트 배열을 문자열로 변환
+                                    final String text = new String(encodedBytes, "US-ASCII");
+                                    readBufferPosition = 0;
+                                    hand.post(new Runnable() {
+
+                                        @Override
+
+                                        public void run() {
+                                            Toast.makeText(getApplicationContext(), text,Toast.LENGTH_LONG).show();
+                                        }
+
+                                    });
+                                } // 개행 문자가 아닐 경우
+                                else {
+                                    readBuffer[readBufferPosition++] = tempByte;
+                                }
+                            }
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                    try {
+                        // 10초마다 받아옴
+                        Thread.sleep(10000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+
+        });
+        workerThread.start();
+    }
+    // 핸들러 선언
+    final Handler handler = new Handler() {
+        public void handleMessage(Message msg) {
+            Toast.makeText(getApplicationContext(), "지팡이를 찾을수 없습니다.", Toast.LENGTH_SHORT).show();
+        }
+    };
+
+
 
     @Override
     protected void onStart() {
