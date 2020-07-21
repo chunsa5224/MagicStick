@@ -109,7 +109,7 @@ public class MainActivity extends AppCompatActivity {
                         toast("swipe top");
                         //목적지 음성 입력 시작
                         Intent intent1 = new Intent(getApplicationContext(), NavigationActivity.class);
-                        intent1.putExtra("destination", "풍산역");
+                        intent1.putExtra("destination", "공릉역");
                         startActivity(intent1);
 
                         try {
