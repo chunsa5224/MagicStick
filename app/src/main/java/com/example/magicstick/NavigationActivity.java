@@ -25,6 +25,7 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 import java.util.ArrayList;
+import java.util.LinkedList;
 
 
 public class NavigationActivity extends AppCompatActivity implements TMapGpsManager.onLocationChangedCallback{
@@ -41,8 +42,10 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
     Handler handler = new Handler();
     Runnable runnable;
     int index=-1;
-    String [] navigation ;
-    String [] coordinates;
+
+    LinkedList<String> coordinates = new LinkedList<String>();
+    LinkedList<String> navigation = new LinkedList<String>();
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -76,11 +79,6 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
         startPoint = tMapGps.getLocation();
 
 
-//        Log.d(TAG,"현위치 좌표계 : " + startPoint.getLatitude()+", "+ startPoint.getLongitude() );
-
-       // startPoint = new TMapPoint(35.171573, 129.176099);
-
-
         //장소 입력받아 좌표계 가져오기
         tMapData.findAllPOI(destination, new TMapData.FindAllPOIListenerCallback() {
 
@@ -90,20 +88,10 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
                 endPoint = poiItems.get(0).getPOIPoint();
                 Log.d(TAG,"POI item : " + endPoint.getLatitude()+", " + endPoint.getLongitude());
                 findPath(startPoint,endPoint);
-                // 통합 리스트 들고오는 부분
-                        /*for(int i=0; i<poiItems.size(); i++){
-                            TMapPOIItem item = poiItems.get(i);
-                            Log.d("POI Name : " , item.getPOIName().toString() + ", " + "Address : " + item.getPOIAddress().replace("null", "")+", Point" + item.getPOIPoint().toString());
-                        }*/
 
             }
 
         });
-
-        // 보행자 경로탐색
-
-        //new Waiter().execute();
-        //Log.d(TAG,"Waiter 끝! 현위치 좌표계 : " + startPoint.getLatitude()+", "+ startPoint.getLongitude() );
 
 
         // T MAP setting
@@ -124,26 +112,37 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
 
     @Override
     public void onLocationChange(Location location) {
+        Log.d(TAG, "Location Changed !");
         if(m_bTrackingMode){
             tMapView.setLocationPoint(location.getLongitude(),location.getLatitude());
         }
         if(index==-1){
             startPoint = new TMapPoint(location.getLatitude(), location.getLongitude());
-            index++;
+            index = 0;
         }
 
-        if(coordinates!=null){
-            Log.d(TAG,"coordinates : " + coordinates[0]);
-            if(location.getLatitude() == Double.parseDouble(coordinates[index].split(",")[0])
-                    && location.getLongitude() == Double.parseDouble(coordinates[index].split(",")[1]) ){
-                Log.d(TAG, "Current Navigation : " + navigation[index]);
-                index++;
+        if(coordinates.peek()==null || navigation.peek()==null){
+            Log.d(TAG, "Coordinates and Navigation are null");
+
+        }else {
+            String peek = coordinates.peek();
+
+            double longitude = Math.round(location.getLongitude()*1000000)/1000000.0;
+            double latitude = Math.round(location.getLatitude()*1000000)/1000000.0;
+            double p_longitude = Math.round(Double.parseDouble(peek.split(",")[0])*1000000)/1000000.0;
+            double p_latitude = Math.round(Double.parseDouble(peek.split(",")[1])*1000000)/1000000.0;
+            Log.d(TAG, "Current GPS : " + longitude + ", " + latitude);
+
+            if(Math.abs(longitude - p_longitude) <= 0.000002 && Math.abs(latitude-p_latitude)<= 0.000002){
+                Log.d(TAG, "Current navigation : " + navigation.peek());
+                coordinates.poll();
+                navigation.poll();
+            }else {
+                Log.d(TAG," Go to " + p_longitude + " , " + p_latitude);
+
             }
+
         }
-
-
-
-        Log.d(TAG, "onLocationChange : " + startPoint.getLatitude() +" , " + startPoint.getLongitude());
     }
 
 
@@ -162,22 +161,19 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
                 for( int i=0; i<nodeListPlacemark.getLength(); i++ ) {
                     NodeList nodeListPlacemarkItem = nodeListPlacemark.item(i).getChildNodes();
 
-                    coordinates=new String [nodeListPlacemarkItem.getLength()];
-                    navigation=new String [nodeListPlacemarkItem.getLength()];
 
                     for( int j=0; j<nodeListPlacemarkItem.getLength(); j++ ) {
-                        if( nodeListPlacemarkItem.item(j).getNodeName().equals("Point") ) {
-                            String n = nodeListPlacemarkItem.item(j).getTextContent().trim();
-                            Log.d(TAG, "location : " + n);
-                            coordinates[j]=n;
+                        if( nodeListPlacemarkItem.item(j).getNodeName().equals("Point")
+                                /*&& nodeListPlacemarkItem.item(j).getNodeName().equals("description")*/) {
+                            String c = nodeListPlacemarkItem.item(31).getTextContent().trim();
+                            String n = nodeListPlacemarkItem.item(7).getTextContent().trim();
+                            coordinates.add(c);
+                            navigation.add(n);
+                            Log.d(TAG, i + " GPS : " + c);
+                            Log.d(TAG, i+ " Navigation : " + n);
                         }
-                         if( nodeListPlacemarkItem.item(j).getNodeName().equals("description") ) {
-                             String n = nodeListPlacemarkItem.item(j).getTextContent().trim();
-                             Log.d(TAG, "Navigation : " + n);
-                             navigation[j] = n;
-                        }
-                    }
 
+                    }
                 }
 
             }
@@ -192,25 +188,7 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
                 tMapView.addTMapPath(polyLine);
             }
         });
-    }
 
-    class Waiter extends AsyncTask<Void,Void,Void> {
-
-        @Override
-        protected Void doInBackground(Void... voids) {
-            Log.d(TAG, "Waiter");
-            while(startPoint==null || endPoint == null){
-                try{Thread.sleep(1000); Log.d(TAG, "wait for GPS...");}catch (Exception e){Log.d(TAG,"error in water");}
-            }
-            handler.post(runnable);
-            findPath(startPoint, endPoint);
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(Void aVoid){
-            super.onPostExecute(aVoid);
-        }
     }
 
 }

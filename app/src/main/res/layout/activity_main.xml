@@ -20,7 +20,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textSize="20dp"
-            android:text="경로 탐색하기"
+            android:text="Enter the destination"
             android:layout_marginLeft="30dp"
 
             android:layout_marginBottom="10dp"

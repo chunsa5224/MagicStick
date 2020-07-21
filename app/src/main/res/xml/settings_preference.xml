@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
-    <PreferenceCategory android:title="앱설정">
+    <PreferenceCategory android:title="Setting">
         <SwitchPreference
             android:key="voice_notification"
-            android:title="음성알림"/>
+            android:title="Voice notification"/>
         <SwitchPreference
             android:key="bluetooth"
-            android:title="블루투스 연결"/>
+            android:title="Bluetooth connection"/>
     </PreferenceCategory>
-    <PreferenceCategory android:title="고급 설정">
+    <PreferenceCategory android:title="Detail Setting">
         <PreferenceScreen
             android:key="object_screen"
-            android:title="위험 물체 사용자화"
+            android:title="Object detection customizing"
             android:summary="사용안함">
             <SwitchPreference
                 android:defaultValue="true"
