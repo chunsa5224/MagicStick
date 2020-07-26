@@ -31,10 +31,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import com.skt.Tmap.TMapData;
-import com.skt.Tmap.TMapPOIItem;
-
-import org.xml.sax.SAXException;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -45,7 +41,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
-import javax.xml.parsers.ParserConfigurationException;
+
 
 
 
@@ -78,22 +74,11 @@ public class MainActivity extends AppCompatActivity {
     private int readBufferPosition; // 버퍼 내 문자 저장 위치
     private int checknumber=0;
 
-
-
-
-
-
-
-
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         editText = (EditText)findViewById(R.id.editText);
-        //final TMapData tMapData = new TMapData();
-
-        //Setting 값 들고오는 부분
 
         //권한 요청
         if(Build.VERSION.SDK_INT>=23){
@@ -158,8 +143,6 @@ public class MainActivity extends AppCompatActivity {
                         bluetoothAdapter.enable();
                         CheckTypesTask task = new CheckTypesTask();
                         task.execute();
-
-
                     }
 
                     public void onSwipeRight() {
@@ -194,7 +177,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //프로그래스 다이얼로그 생성
-// 프로그레스 다이얼로그 생성
+    // 프로그레스 다이얼로그 생성
     private class CheckTypesTask extends AsyncTask<Void, Void, Void> {
         ProgressDialog asyncDialog = new ProgressDialog(
                 MainActivity.this);
@@ -380,18 +363,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-
-    public void searchLocation(final EditText editText) throws ParserConfigurationException, SAXException, IOException {
-
-        TMapData tMapData = new TMapData();
-        ArrayList poiItems = tMapData.findAllPOI("SKT타워");
-        Log.d("poiItems : ", poiItems.toString());
-        for(int i=0; i<poiItems.size(); i++){
-            TMapPOIItem item = (TMapPOIItem) poiItems.get(i);
-            Log.d("POI Name : " , item.getPOIName().toString() + ", " + "Address : " + item.getPOIAddress().replace("null", "")+", Point" + item.getPOIPoint().toString());
-        }
-    }
-
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {

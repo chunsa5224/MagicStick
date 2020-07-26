@@ -8,10 +8,12 @@ import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
+import android.speech.tts.TextToSpeech;
 import android.util.Log;
 
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.Toast;
 
 import com.skt.Tmap.TMapData;
 import com.skt.Tmap.TMapGpsManager;
@@ -26,9 +28,10 @@ import org.w3c.dom.NodeList;
 
 import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.Locale;
 
 
-public class NavigationActivity extends AppCompatActivity implements TMapGpsManager.onLocationChangedCallback{
+public class NavigationActivity extends AppCompatActivity implements TMapGpsManager.onLocationChangedCallback, TextToSpeech.OnInitListener{
 
 
     private static String appKey ="l7xx9ed3bc26b00f404b816bb3b6e2f44ec9";
@@ -37,6 +40,7 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
     private TMapView tMapView =null;
     private boolean m_bTrackingMode = true;
     final String TAG = getClass().getName();
+    private TextToSpeech tts;
     TMapPoint startPoint;
     TMapPoint endPoint;
     Handler handler = new Handler();
@@ -73,6 +77,8 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
         tMapGps.setProvider(tMapGps.GPS_PROVIDER);
         tMapGps.OpenGps();
 
+        tts = new TextToSpeech(this, this);
+
 
         editText.setText("현위치");
 
@@ -87,8 +93,7 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
                 Log.d(TAG, "First poi item : "+poiItems.get(0).getPOIName() + ", Point : " + poiItems.get(0).getPOIPoint().toString());
                 endPoint = poiItems.get(0).getPOIPoint();
                 Log.d(TAG,"POI item : " + endPoint.getLatitude()+", " + endPoint.getLongitude());
-                findPath(startPoint,endPoint);
-
+                //findPath(startPoint,endPoint);
             }
 
         });
@@ -118,6 +123,7 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
         }
         if(index==-1){
             startPoint = new TMapPoint(location.getLatitude(), location.getLongitude());
+            findPath(startPoint,endPoint);
             index = 0;
         }
 
@@ -135,6 +141,7 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
 
             if(Math.abs(longitude - p_longitude) <= 0.000002 && Math.abs(latitude-p_latitude)<= 0.000002){
                 Log.d(TAG, "Current navigation : " + navigation.peek());
+                speech(navigation.peek());
                 coordinates.poll();
                 navigation.poll();
             }else {
@@ -143,6 +150,30 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
             }
 
         }
+    }
+    @Override
+    public void onInit(int status) {
+        if (status == TextToSpeech.SUCCESS) {
+            // 작업 성공
+            int language = tts.setLanguage(Locale.KOREAN);  // 언어 설정
+            if (language == TextToSpeech.LANG_MISSING_DATA
+                    || language == TextToSpeech.LANG_NOT_SUPPORTED) {
+                // 언어 데이터가 없거나, 지원하지 않는경우
+                toast("지원하지 않는 언어입니다.");
+            }
+        } else {
+            toast("speech fail! ");
+        }
+
+    }
+
+    public void speech(String text){
+
+        tts.setLanguage(Locale.KOREAN);
+        tts.setPitch(1.0f);
+        tts.setSpeechRate(1.0f);
+        tts.speak(text, TextToSpeech.QUEUE_FLUSH,null);
+
     }
 
 
@@ -161,10 +192,8 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
                 for( int i=0; i<nodeListPlacemark.getLength(); i++ ) {
                     NodeList nodeListPlacemarkItem = nodeListPlacemark.item(i).getChildNodes();
 
-
                     for( int j=0; j<nodeListPlacemarkItem.getLength(); j++ ) {
-                        if( nodeListPlacemarkItem.item(j).getNodeName().equals("Point")
-                                /*&& nodeListPlacemarkItem.item(j).getNodeName().equals("description")*/) {
+                        if( nodeListPlacemarkItem.item(j).getNodeName().equals("Point")) {
                             String c = nodeListPlacemarkItem.item(31).getTextContent().trim();
                             String n = nodeListPlacemarkItem.item(7).getTextContent().trim();
                             coordinates.add(c);
@@ -183,12 +212,16 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
         tMapData.findPathDataWithType(TMapData.TMapPathType.PEDESTRIAN_PATH, startPoint, endPoint, new TMapData.FindPathDataListenerCallback() {
             @Override
             public void onFindPathData(TMapPolyLine polyLine) {
-                polyLine.setLineWidth(4);
-                polyLine.setLineColor(Color.BLUE);
+                polyLine.setLineWidth(7);
+                polyLine.setLineColor(Color.RED);
                 tMapView.addTMapPath(polyLine);
             }
         });
 
+    }
+
+    private void toast(String msg){
+        Toast.makeText(this,msg, Toast.LENGTH_LONG).show();
     }
 
 }
