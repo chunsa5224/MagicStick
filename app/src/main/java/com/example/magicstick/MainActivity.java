@@ -13,7 +13,6 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
-import android.os.ParcelUuid;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
 import android.speech.RecognitionListener;
@@ -32,20 +31,17 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-import com.skt.Tmap.TMapData;
-import com.skt.Tmap.TMapPOIItem;
-
-import org.xml.sax.SAXException;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
-import javax.xml.parsers.ParserConfigurationException;
+
 
 
 
@@ -76,23 +72,13 @@ public class MainActivity extends AppCompatActivity {
     private byte[] readBuffer; // 수신 된 문자열을 저장하기 위한 버퍼
 
     private int readBufferPosition; // 버퍼 내 문자 저장 위치
-
-
-
-
-
-
-
-
+    private int checknumber=0;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         editText = (EditText)findViewById(R.id.editText);
-        //final TMapData tMapData = new TMapData();
-
-        //Setting 값 들고오는 부분
 
         //권한 요청
         if(Build.VERSION.SDK_INT>=23){
@@ -136,7 +122,6 @@ public class MainActivity extends AppCompatActivity {
         });
         tts.setPitch(1.0f);
         tts.setSpeechRate(1.0f);
-        //스와이프
         View view = findViewById(R.id.background_view);
         view.setOnTouchListener(new OnSwipeTouchListener(this) {
                     public void onSwipeTop() {
@@ -156,28 +141,20 @@ public class MainActivity extends AppCompatActivity {
                         toast("swipe bottom");
                         //블루투스 On
                         bluetoothAdapter.enable();
-
                         CheckTypesTask task = new CheckTypesTask();
-
                         task.execute();
-
                     }
 
                     public void onSwipeRight() {
                         toast("swipe Right");
-                        if (bluetoothAdapter.isEnabled()==false){
+                        if (bluetoothDevice == null){
                             toast("no connection Bluetooth");
                             return;
                         }
                         else {
-                            Log.d("device list",bluetoothAdapter.getName());
                             toast("start Object Detection");
                             try{
-
-                                toast("bluetooth reconnect");
-                                sendData("1");
                                 receiveData();
-                                toast("make InputStream");
                             }catch (Exception e){
                                 // 쓰레드에서 UI처리를 위한 핸들러
                                 Message msg = handler.obtainMessage();
@@ -190,7 +167,7 @@ public class MainActivity extends AppCompatActivity {
 
                     public void onSwipeLeft(){
                         toast("swipe Left");
-                        bluetoothAdapter.disable();
+
                     }
 
                 }
@@ -200,11 +177,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     //프로그래스 다이얼로그 생성
-// 프로그레스 다이얼로그 생성
+    // 프로그레스 다이얼로그 생성
     private class CheckTypesTask extends AsyncTask<Void, Void, Void> {
         ProgressDialog asyncDialog = new ProgressDialog(
                 MainActivity.this);
-        private String device_name = "Galaxy S8+";
+        private String device_name = "raspberrypi";
         @Override
         protected void onPreExecute() {
             asyncDialog.setCancelable(false);
@@ -223,12 +200,10 @@ public class MainActivity extends AppCompatActivity {
             bluetoothDeviceSet = bluetoothAdapter.getBondedDevices();
 
             // 리스트를 만듬
-
-            /*List<String> list = new ArrayList<>();
+            List<String> list = new ArrayList<>();
             for(BluetoothDevice bluetoothDevice : bluetoothDeviceSet) {
                 list.add(bluetoothDevice.getName());
-                Log.d("device list", bluetoothDevice.getName());
-            }*/
+            }
             connectDevice(device_name);
             return null;
         }
@@ -247,27 +222,19 @@ public class MainActivity extends AppCompatActivity {
 
         for(BluetoothDevice device : bluetoothDeviceSet) {
             if(device.getName().contains(deviceName)) {
-                Log.d("device list",device.getName());
                 bluetoothDevice = device;
-
+                checknumber=1;
                 break;
             }
         }
 
-
         // UUID 생성
-        ParcelUuid list[] = bluetoothDevice.getUuids();
-        UUID uuid  = UUID.fromString(list[0].toString());
+        UUID uuid = java.util.UUID.fromString("00000003-0000-1000-8000-00805F9B34FB");
 
-
-        Log.d("device list",uuid.toString());
         try {
             // 블루투스 소켓 생성
             bluetoothSocket = bluetoothDevice.createRfcommSocketToServiceRecord(uuid);
-            Log.d("device list","device Socket Created");
-
             bluetoothSocket.connect();
-            Log.d("device list", "Device Connected");
             // 데이터 받기 위해 인풋스트림 생성
             outputStream = bluetoothSocket.getOutputStream();
             inputStream = bluetoothSocket.getInputStream();
@@ -284,7 +251,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
     }
-    //receive 환경 설정
+
     public void receiveData() {
         final Handler hand = new Handler();
         // 데이터를 수신하기 위한 버퍼를 생성
@@ -292,7 +259,9 @@ public class MainActivity extends AppCompatActivity {
         readBuffer = new byte[1024];
         // 데이터를 수신하기 위한 쓰레드 생성
         workerThread = new Thread(new Runnable() {
+
             @Override
+
             public void run() {
                 while(Thread.currentThread().isInterrupted()) {
                     try {
@@ -317,9 +286,11 @@ public class MainActivity extends AppCompatActivity {
                                     hand.post(new Runnable() {
 
                                         @Override
+
                                         public void run() {
                                             Toast.makeText(getApplicationContext(), text,Toast.LENGTH_LONG).show();
                                         }
+
                                     });
                                 } // 개행 문자가 아닐 경우
                                 else {
@@ -348,18 +319,6 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(getApplicationContext(), "지팡이를 찾을수 없습니다.", Toast.LENGTH_SHORT).show();
         }
     };
-
-
-    void sendData(String text) {
-        // 문자열에 개행문자("\n")를 추가해줍니다.
-        try{
-            // 데이터 송신
-            outputStream.write(text.getBytes());
-            toast("text was sent");
-        }catch(Exception e) {
-            e.printStackTrace();
-        }
-    }
 
 
 
@@ -404,18 +363,6 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     }
-
-    public void searchLocation(final EditText editText) throws ParserConfigurationException, SAXException, IOException {
-
-        TMapData tMapData = new TMapData();
-        ArrayList poiItems = tMapData.findAllPOI("SKT타워");
-        Log.d("poiItems : ", poiItems.toString());
-        for(int i=0; i<poiItems.size(); i++){
-            TMapPOIItem item = (TMapPOIItem) poiItems.get(i);
-            Log.d("POI Name : " , item.getPOIName().toString() + ", " + "Address : " + item.getPOIAddress().replace("null", "")+", Point" + item.getPOIPoint().toString());
-        }
-    }
-
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
