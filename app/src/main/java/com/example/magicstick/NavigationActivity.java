@@ -1,19 +1,17 @@
 package com.example.magicstick;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.content.Intent;
 import android.graphics.Color;
 import android.location.Location;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.speech.tts.TextToSpeech;
 import android.util.Log;
-
 import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.skt.Tmap.TMapData;
 import com.skt.Tmap.TMapGpsManager;
@@ -44,7 +42,8 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
     TMapPoint startPoint;
     TMapPoint endPoint;
     int index=-1;
-
+    double prev_lat;
+    double prev_long;
     LinkedList<String> coordinates = new LinkedList<String>();
     LinkedList<String> navigation = new LinkedList<String>();
 
@@ -115,31 +114,61 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
             thread.start();
             index = 0;
         }
+        boolean in = Distance(location);
+        if (in == false){
+            Log.d(TAG, "wrong route!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+            findPath(startPoint, endPoint);
+        } else {
 
-        if(coordinates.peek()==null || navigation.peek()==null){
-            Log.d(TAG, "Coordinates and Navigation are null");
+            if(coordinates.peek()==null || navigation.peek()==null){
+                Log.d(TAG, "Coordinates and Navigation are null");
 
-        }else {
-            String peek = coordinates.peek();
-
-            double longitude = Math.round(location.getLongitude()*1000000)/1000000.0;
-            double latitude = Math.round(location.getLatitude()*1000000)/1000000.0;
-            double p_longitude = Math.round(Double.parseDouble(peek.split(",")[0])*1000000)/1000000.0;
-            double p_latitude = Math.round(Double.parseDouble(peek.split(",")[1])*1000000)/1000000.0;
-            Log.d(TAG, "Current GPS : " + longitude + ", " + latitude);
-
-            if(Math.abs(longitude - p_longitude) <= 0.000002 && Math.abs(latitude-p_latitude)<= 0.000002){
-                Log.d(TAG, "Current navigation : " + navigation.peek());
-                speech(navigation.peek());
-                coordinates.poll();
-                navigation.poll();
             }else {
-                Log.d(TAG," Go to " + p_longitude + " , " + p_latitude);
+                String peek = coordinates.peek();
+
+                double longitude = Math.round(location.getLongitude()*1000000)/1000000.0;
+                double latitude = Math.round(location.getLatitude()*1000000)/1000000.0;
+                double p_longitude = Math.round(Double.parseDouble(peek.split(",")[0])*1000000)/1000000.0;
+                double p_latitude = Math.round(Double.parseDouble(peek.split(",")[1])*1000000)/1000000.0;
+                Log.d(TAG, "Current GPS : " + longitude + ", " + latitude);
+
+                if(Math.abs(longitude - p_longitude) <= 0.000002 && Math.abs(latitude-p_latitude)<= 0.000002){
+                    Log.d(TAG, "Current navigation : " + navigation.peek());
+                    speech(navigation.peek());
+                    prev_lat = p_latitude;
+                    prev_long = p_longitude;
+                    coordinates.poll();
+                    navigation.poll();
+
+                }else {
+                    Log.d(TAG," Go to " + p_longitude + " , " + p_latitude);
+
+                }
 
             }
-
         }
     }
+
+    private boolean Distance(Location location){
+        String peek = coordinates.peek();
+        double longitude = Math.round(location.getLongitude()*1000000)/1000000.0;
+        double latitude = Math.round(location.getLatitude()*1000000)/1000000.0;
+        double p_longitude = Math.round(Double.parseDouble(peek.split(",")[0])*1000000)/1000000.0;
+        double p_latitude = Math.round(Double.parseDouble(peek.split(",")[1])*1000000)/1000000.0;
+
+        double a = prev_lat - p_latitude;
+        double b = p_longitude - prev_long;
+        double c = prev_long*p_latitude - p_longitude*prev_lat;
+        double dist = (double)Math.abs(a*longitude + b*latitude + c) / (double)Math.sqrt(a*a + b*b);
+
+        if (dist < 0.00002){
+            return true;
+        } else{
+            return false;
+        }
+
+    }
+
     @Override
     public void onInit(int status) {
         if (status == TextToSpeech.SUCCESS) {
