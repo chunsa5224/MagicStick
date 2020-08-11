@@ -43,8 +43,6 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
     private TextToSpeech tts;
     TMapPoint startPoint;
     TMapPoint endPoint;
-    Handler handler = new Handler();
-    Runnable runnable;
     int index=-1;
 
     LinkedList<String> coordinates = new LinkedList<String>();
@@ -93,7 +91,6 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
                 Log.d(TAG, "First poi item : "+poiItems.get(0).getPOIName() + ", Point : " + poiItems.get(0).getPOIPoint().toString());
                 endPoint = poiItems.get(0).getPOIPoint();
                 Log.d(TAG,"POI item : " + endPoint.getLatitude()+", " + endPoint.getLongitude());
-                //findPath(startPoint,endPoint);
             }
 
         });
@@ -117,13 +114,15 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
 
     @Override
     public void onLocationChange(Location location) {
-        Log.d(TAG, "Location Changed !");
+        Log.d(TAG, "Location Changed ! index: "+ index );
         if(m_bTrackingMode){
             tMapView.setLocationPoint(location.getLongitude(),location.getLatitude());
         }
         if(index==-1){
             startPoint = new TMapPoint(location.getLatitude(), location.getLongitude());
-            findPath(startPoint,endPoint);
+            FindPath findPath = new FindPath();
+            Thread thread = new Thread(findPath);
+            thread.run();
             index = 0;
         }
 
@@ -176,49 +175,54 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
 
     }
 
+    public class FindPath extends Thread{
+        public void run(){
+            findPath(startPoint,endPoint);
+        }
+        public void findPath (TMapPoint startPoint, TMapPoint endPoint){
+            Log.d(TAG, "경로그리기 with " + "departure : "+startPoint.getLatitude()+", "+ startPoint.getLongitude()+ " / destination : " + endPoint.getLatitude()+", " + endPoint.getLongitude() );
 
-    public void findPath(TMapPoint startPoint, TMapPoint endPoint){
-        Log.d(TAG, "경로그리기 with " + "departure : "+startPoint.getLatitude()+", "+ startPoint.getLongitude()+ " / destination : " + endPoint.getLatitude()+", " + endPoint.getLongitude() );
+            tMapData.findPathDataAllType(TMapData.TMapPathType.PEDESTRIAN_PATH, startPoint, endPoint, new TMapData.FindPathDataAllListenerCallback() {
+                @Override
+                public void onFindPathDataAll(Document document) {
 
-        tMapData.findPathDataAllType(TMapData.TMapPathType.PEDESTRIAN_PATH, startPoint, endPoint, new TMapData.FindPathDataAllListenerCallback() {
-            @Override
-            public void onFindPathDataAll(Document document) {
+                    Element root = document.getDocumentElement();
 
-                Element root = document.getDocumentElement();
+                    NodeList nodeListPlacemark = root.getElementsByTagName("Placemark");
+                    Log.d(TAG,"Root element :" + root.getNodeName());
 
-                NodeList nodeListPlacemark = root.getElementsByTagName("Placemark");
-                Log.d(TAG,"Root element :" + root.getNodeName());
+                    for( int i=0; i<nodeListPlacemark.getLength(); i++ ) {
+                        NodeList nodeListPlacemarkItem = nodeListPlacemark.item(i).getChildNodes();
 
-                for( int i=0; i<nodeListPlacemark.getLength(); i++ ) {
-                    NodeList nodeListPlacemarkItem = nodeListPlacemark.item(i).getChildNodes();
+                        for( int j=0; j<nodeListPlacemarkItem.getLength(); j++ ) {
+                            if( nodeListPlacemarkItem.item(j).getNodeName().equals("Point")) {
+                                String c = nodeListPlacemarkItem.item(31).getTextContent().trim();
+                                String n = nodeListPlacemarkItem.item(7).getTextContent().trim();
+                                coordinates.add(c);
+                                navigation.add(n);
+                                Log.d(TAG, i + " GPS : " + c);
+                                Log.d(TAG, i+ " Navigation : " + n);
+                            }
 
-                    for( int j=0; j<nodeListPlacemarkItem.getLength(); j++ ) {
-                        if( nodeListPlacemarkItem.item(j).getNodeName().equals("Point")) {
-                            String c = nodeListPlacemarkItem.item(31).getTextContent().trim();
-                            String n = nodeListPlacemarkItem.item(7).getTextContent().trim();
-                            coordinates.add(c);
-                            navigation.add(n);
-                            Log.d(TAG, i + " GPS : " + c);
-                            Log.d(TAG, i+ " Navigation : " + n);
                         }
-
                     }
+
                 }
 
-            }
+            });
 
-        });
+            tMapData.findPathDataWithType(TMapData.TMapPathType.PEDESTRIAN_PATH, startPoint, endPoint, new TMapData.FindPathDataListenerCallback() {
+                @Override
+                public void onFindPathData(TMapPolyLine polyLine) {
+                    polyLine.setLineWidth(7);
+                    polyLine.setLineColor(Color.RED);
+                    tMapView.addTMapPath(polyLine);
+                }
+            });
 
-        tMapData.findPathDataWithType(TMapData.TMapPathType.PEDESTRIAN_PATH, startPoint, endPoint, new TMapData.FindPathDataListenerCallback() {
-            @Override
-            public void onFindPathData(TMapPolyLine polyLine) {
-                polyLine.setLineWidth(7);
-                polyLine.setLineColor(Color.RED);
-                tMapView.addTMapPath(polyLine);
-            }
-        });
-
+        }
     }
+
 
     private void toast(String msg){
         Toast.makeText(this,msg, Toast.LENGTH_LONG).show();
