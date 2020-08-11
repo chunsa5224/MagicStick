@@ -65,6 +65,9 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
         final EditText editText = findViewById(R.id.departure);
 
         String destination =intent.getExtras().getString("destination");
+        double d_latitude = intent.getExtras().getDouble("d_latitude");
+        double d_longitude = intent.getExtras().getDouble("d_longitude");
+        endPoint = new TMapPoint(d_latitude,d_longitude);
         editText2.setText(destination);
 
 
@@ -72,8 +75,9 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
         tMapGps = new TMapGpsManager(this);
         tMapGps.setMinTime(1000);
         tMapGps.setProvider(tMapGps.NETWORK_PROVIDER);
-        tMapGps.setProvider(tMapGps.GPS_PROVIDER);
+        //tMapGps.setProvider(tMapGps.GPS_PROVIDER);
         tMapGps.OpenGps();
+
 
         tts = new TextToSpeech(this, this);
 
@@ -81,20 +85,6 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
         editText.setText("현위치");
 
         startPoint = tMapGps.getLocation();
-
-
-        //장소 입력받아 좌표계 가져오기
-        tMapData.findAllPOI(destination, new TMapData.FindAllPOIListenerCallback() {
-
-            @Override
-            public void onFindAllPOI(ArrayList<TMapPOIItem> poiItems) {
-                Log.d(TAG, "First poi item : "+poiItems.get(0).getPOIName() + ", Point : " + poiItems.get(0).getPOIPoint().toString());
-                endPoint = poiItems.get(0).getPOIPoint();
-                Log.d(TAG,"POI item : " + endPoint.getLatitude()+", " + endPoint.getLongitude());
-            }
-
-        });
-
 
         // T MAP setting
         tMapView.setCompassMode(true);
@@ -122,7 +112,7 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
             startPoint = new TMapPoint(location.getLatitude(), location.getLongitude());
             FindPath findPath = new FindPath();
             Thread thread = new Thread(findPath);
-            thread.run();
+            thread.start();
             index = 0;
         }
 
@@ -176,9 +166,16 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
     }
 
     public class FindPath extends Thread{
+        @Override
         public void run(){
             findPath(startPoint,endPoint);
         }
+
+        @Override
+        public void interrupt() {
+            super.interrupt();
+        }
+
         public void findPath (TMapPoint startPoint, TMapPoint endPoint){
             Log.d(TAG, "경로그리기 with " + "departure : "+startPoint.getLatitude()+", "+ startPoint.getLongitude()+ " / destination : " + endPoint.getLatitude()+", " + endPoint.getLongitude() );
 
