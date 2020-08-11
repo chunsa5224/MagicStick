@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.location.Location;
 import android.os.Bundle;
-import android.os.Handler;
 import android.speech.tts.TextToSpeech;
 import android.util.Log;
 import android.widget.EditText;
@@ -15,7 +14,6 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.skt.Tmap.TMapData;
 import com.skt.Tmap.TMapGpsManager;
-import com.skt.Tmap.TMapPOIItem;
 import com.skt.Tmap.TMapPoint;
 import com.skt.Tmap.TMapPolyLine;
 import com.skt.Tmap.TMapView;
@@ -107,9 +105,9 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
         if(m_bTrackingMode){
             tMapView.setLocationPoint(location.getLongitude(),location.getLatitude());
         }
+        FindPath findPath = new FindPath();
         if(index==-1){
             startPoint = new TMapPoint(location.getLatitude(), location.getLongitude());
-            FindPath findPath = new FindPath();
             Thread thread = new Thread(findPath);
             thread.start();
             index = 0;
@@ -117,7 +115,8 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
         boolean in = Distance(location);
         if (in == false){
             Log.d(TAG, "wrong route!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-            findPath(startPoint, endPoint);
+            Thread thread = new Thread(findPath);
+            thread.start();
         } else {
 
             if(coordinates.peek()==null || navigation.peek()==null){
