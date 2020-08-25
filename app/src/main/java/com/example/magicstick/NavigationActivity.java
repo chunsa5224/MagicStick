@@ -49,6 +49,7 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
     LinkedList<String> coordinates = new LinkedList<String>();
     LinkedList<String> navigation = new LinkedList<String>();
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -84,6 +85,7 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
         startPoint = tMapGps.getLocation();
 
 
+
         //장소 입력받아 좌표계 가져오기
         tMapData.findAllPOI(destination, new TMapData.FindAllPOIListenerCallback() {
 
@@ -116,6 +118,7 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
 
     @Override
     public void onLocationChange(Location location) {
+        Log.d(TAG,"index"+String.valueOf(index));
         Log.d(TAG, "Location Changed !");
         if(m_bTrackingMode){
             tMapView.setLocationPoint(location.getLongitude(),location.getLatitude());
@@ -125,25 +128,29 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
             findPath(startPoint,endPoint);
             index = 0;
         }
-        boolean in = Distance(location);
-        if (in == false){
-            Log.d(TAG, "wrong route!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
-            findPath(startPoint, endPoint);
-        } else {
 
-            if(coordinates.peek()==null || navigation.peek()==null){
-                Log.d(TAG, "Coordinates and Navigation are null");
+        if(coordinates.peek()==null || navigation.peek()==null){
+            Log.d(TAG, "Coordinates and Navigation are null");
 
-            }else {
+        }else {
+            boolean in = Distance(location);
+            if (in == false) {
+                Log.d(TAG, "wrong route!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+                startPoint = new TMapPoint(location.getLatitude(), location.getLongitude());
+                findPath(startPoint, endPoint);
+            }
+
+
+
                 String peek = coordinates.peek();
 
-                double longitude = Math.round(location.getLongitude()*1000000)/1000000.0;
-                double latitude = Math.round(location.getLatitude()*1000000)/1000000.0;
-                double p_longitude = Math.round(Double.parseDouble(peek.split(",")[0])*1000000)/1000000.0;
-                double p_latitude = Math.round(Double.parseDouble(peek.split(",")[1])*1000000)/1000000.0;
+                double longitude = Math.round(location.getLongitude() * 1000000) / 1000000.0;
+                double latitude = Math.round(location.getLatitude() * 1000000) / 1000000.0;
+                double p_longitude = Math.round(Double.parseDouble(peek.split(",")[0]) * 1000000) / 1000000.0;
+                double p_latitude = Math.round(Double.parseDouble(peek.split(",")[1]) * 1000000) / 1000000.0;
                 Log.d(TAG, "Current GPS : " + longitude + ", " + latitude);
 
-                if(Math.abs(longitude - p_longitude) <= 0.000002 && Math.abs(latitude-p_latitude)<= 0.000002){
+                if (Math.abs(longitude - p_longitude) <= 0.000002 && Math.abs(latitude - p_latitude) <= 0.000002) {
                     Log.d(TAG, "Current navigation : " + navigation.peek());
                     speech(navigation.peek());
                     prev_lat = p_latitude;
@@ -151,13 +158,14 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
                     coordinates.poll();
                     navigation.poll();
 
-                }else {
-                    Log.d(TAG," Go to " + p_longitude + " , " + p_latitude);
+                } else {
+                    Log.d(TAG, " Go to " + p_longitude + " , " + p_latitude);
 
                 }
 
-            }
+
         }
+
     }
 
     private boolean Distance(Location location){
@@ -171,8 +179,8 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
         double b = p_longitude - prev_long;
         double c = prev_long*p_latitude - p_longitude*prev_lat;
         double dist = (double)Math.abs(a*longitude + b*latitude + c) / (double)Math.sqrt(a*a + b*b);
-
-        if (dist < 0.00002){
+        Log.d(TAG, String.valueOf(dist));
+        if (dist < 0.001){
             return true;
         } else{
             return false;

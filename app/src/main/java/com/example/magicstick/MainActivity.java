@@ -154,6 +154,8 @@ public class MainActivity extends AppCompatActivity {
                         else {
                             toast("start Object Detection");
                             try{
+
+                                sendData("1");
                                 receiveData();
                             }catch (Exception e){
                                 // 쓰레드에서 UI처리를 위한 핸들러
@@ -166,13 +168,27 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     public void onSwipeLeft(){
+
                         toast("swipe Left");
+                        sendData("0");
+
 
                     }
 
                 }
 
         );
+
+    }
+    //0,1 데이터 전송
+    private void sendData(String Message) {
+        try {
+            outputStream.write(Message.getBytes());
+            outputStream.flush();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
 
     }
 
@@ -204,7 +220,9 @@ public class MainActivity extends AppCompatActivity {
             for(BluetoothDevice bluetoothDevice : bluetoothDeviceSet) {
                 list.add(bluetoothDevice.getName());
             }
-            connectDevice(device_name);
+
+
+            //connectDevice(device_name);
             return null;
         }
 
