@@ -5,9 +5,12 @@ import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
@@ -15,6 +18,7 @@ import android.os.Handler;
 import android.os.Message;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
+import android.renderscript.ScriptGroup;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -32,6 +36,11 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 
+import com.skt.Tmap.TMapData;
+import com.skt.Tmap.TMapPOIItem;
+import com.skt.Tmap.TMapPoint;
+import com.skt.Tmap.TMapView;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -41,44 +50,49 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
 
-
-
-
-
 public class MainActivity extends AppCompatActivity {
 
-    Intent intent;
-    SpeechRecognizer mRecognizer;
-    final String TAG = getClass().getName();
-    EditText editText;
-    TextToSpeech tts;
-    Runnable runnable;
-    boolean ttsFlag = true;
-    boolean bluetoothFlag = false;
-    private static final int REQUEST_ENABLE_BT = 10; // 블루투스 활성화 상태
-    BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
-
-    // onActivity Result의 RequestCode 식별자
-
-    // 블루투스 사용 객체
-
+    public static InputStream inputStream;
+    public static OutputStream outputStream;
+    private SpeechRecognizer mRecognizer;
+    private EditText editText;
+    private TextToSpeech tts;
+    private Runnable runnable;
     private BluetoothDevice bluetoothDevice;
     private Set<BluetoothDevice> bluetoothDeviceSet;
     private BluetoothSocket bluetoothSocket;
-    public static InputStream inputStream;
-    public static OutputStream outputStream;
     private Thread workerThread = null; // 문자열 수신에 사용되는 쓰레드
-
     private byte[] readBuffer; // 수신 된 문자열을 저장하기 위한 버퍼
 
     private int readBufferPosition; // 버퍼 내 문자 저장 위치
     private int checknumber=0;
+
+    private boolean ttsFlag = true;
+    private boolean bluetoothFlag = false;
+    private static final int REQUEST_ENABLE_BT = 10; // 블루투스 활성화 상태
+    private final String TAG = getClass().getName();
+    private static boolean isTtsFlag = false;    //TTS 활성화 상태
+
+    private static String appKey ="l7xx9ed3bc26b00f404b816bb3b6e2f44ec9";
+    private final TMapData tMapData = new TMapData();
+    TMapPoint endPoint;
+    private Double latitude;
+    private Double longitude;
+    private String search;
+    private TMapView tMapView =null;
+
+    // 블루투스 사용 객체
+    BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+    Intent intent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         editText = (EditText)findViewById(R.id.editText);
+        tMapView = new TMapView(getApplicationContext());
+        tMapView.setSKTMapApiKey(appKey);
+
 
         //권한 요청
         if(Build.VERSION.SDK_INT>=23){
@@ -97,7 +111,7 @@ public class MainActivity extends AppCompatActivity {
 
         if(bluetoothAdapter==null){
             Toast.makeText(getApplicationContext(), "단말기가 블루투스를 지원하지 않습니다.", Toast.LENGTH_LONG).show();
-            finish(); // 앱 종료
+            //finish(); // 앱 종료
         }else{
             if(bluetoothAdapter.isEnabled()){
                 Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
@@ -111,7 +125,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
 
-        //음성출력
+        // 음성출력
         tts = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
             @Override
             public void onInit(int status) {
@@ -122,27 +136,73 @@ public class MainActivity extends AppCompatActivity {
         });
         tts.setPitch(1.0f);
         tts.setSpeechRate(1.0f);
+
+        // SWIPE
         View view = findViewById(R.id.background_view);
         view.setOnTouchListener(new OnSwipeTouchListener(this) {
                     public void onSwipeTop() {
-                        toast("swipe top");
-                        //목적지 음성 입력 시작
+                        /*toast("swipe top");
+                        ConnectivityManager cm = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
+                        NetworkInfo ni = cm.getActiveNetworkInfo();
+                        // 네트워크 연결 확인
+                        if(ni.isConnected() && ni!=null){
+                            if(ni.getType()==ConnectivityManager.TYPE_MOBILE){
+                                //목적지 음성 입력 시작
+                                Intent intent1 = new Intent(getApplicationContext(), NavigationActivity.class);
+                                intent1.putExtra("destination", "공릉역");
+                                startActivity(intent1);
+
+                                try {
+                                    //inputVoice();
+                                } catch(SecurityException e) {
+                                    e.printStackTrace();
+                                }
+
+                            }else if(ni.getType()==ConnectivityManager.TYPE_WIFI){
+                                toast("와이파이 연결을 해제하고 데이터로 연결해주세요");
+                            }
+                        }else{
+                            toast("데이터 연결을 해주세요!");
+                        }
+                        */
+                        /*//디버깅용
                         Intent intent1 = new Intent(getApplicationContext(), NavigationActivity.class);
                         intent1.putExtra("destination", "공릉역");
-                        startActivity(intent1);
+                        intent1.putExtra("d_latitude",37.62558792);
+                        intent1.putExtra("d_longitude",127.07298295);
+                        startActivity(intent1);*/
 
-                        try {
-                            //inputVoice();
-                        } catch(SecurityException e) {
-                            e.printStackTrace();
+                        Log.d(TAG, "TTS State : "+isTtsFlag);
+                        if(isTtsFlag){
+                            isTtsFlag=false;
+                            Log.d(TAG, editText.getText().toString());
+                            tts.stop();
+                            //tts.shutdown();
+                            mRecognizer.stopListening();
+                            //mRecognizer.destroy();
+                            Intent intent1 = new Intent(getApplicationContext(), NavigationActivity.class);
+                            intent1.putExtra("destination", editText.getText().toString());
+                            intent1.putExtra("d_latitude", latitude);
+                            intent1.putExtra("d_longitude", longitude);
+                            startActivity(intent1);
+                        }else{
+                            isTtsFlag=true;
+                            inputVoice();
                         }
+
+
                     }
                     public void onSwipeBottom() {
-                        toast("swipe bottom");
-                        //블루투스 On
-                        bluetoothAdapter.enable();
-                        CheckTypesTask task = new CheckTypesTask();
-                        task.execute();
+                        Log.d(TAG, "TTS State : "+isTtsFlag);
+                        if(!isTtsFlag){
+                            toast("swipe bottom");
+                            //블루투스 On
+                            bluetoothAdapter.enable();
+                            CheckTypesTask task = new CheckTypesTask();
+                            task.execute();
+                        }else{
+                            inputVoice();
+                        }
                     }
 
                     public void onSwipeRight() {
@@ -154,8 +214,6 @@ public class MainActivity extends AppCompatActivity {
                         else {
                             toast("start Object Detection");
                             try{
-
-                                sendData("1");
                                 receiveData();
                             }catch (Exception e){
                                 // 쓰레드에서 UI처리를 위한 핸들러
@@ -168,10 +226,7 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     public void onSwipeLeft(){
-
                         toast("swipe Left");
-                        sendData("0");
-
 
                     }
 
@@ -180,19 +235,232 @@ public class MainActivity extends AppCompatActivity {
         );
 
     }
-    //0,1 데이터 전송
-    private void sendData(String Message) {
-        try {
-            outputStream.write(Message.getBytes());
-            outputStream.flush();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+
+    @Override
+    protected void onStart() {
+        Log.d(TAG, "Main Activity is on Start");
+        super.onStart();
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        ttsFlag=sharedPreferences.getBoolean("voice_notification",false);
+        bluetoothFlag = sharedPreferences.getBoolean("bluetooth",false);
+        // 음성출력
+        tts = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status) {
+                if(status!= TextToSpeech.ERROR){
+                    tts.setLanguage(Locale.KOREAN);
+                }
+            }
+        });
+        tts.setPitch(1.0f);
+        tts.setSpeechRate(1.0f);
+        Log.d(TAG, "ttsFlag is " + ttsFlag);
+    }
+
+    @Override
+    protected void onStop() {
+        Log.d(TAG, "Main Activity is on Stop");
+        super.onStop();
+        tts.stop();
+        if(mRecognizer!=null) mRecognizer.destroy();//mRecognizer.stopListening();//
+
 
 
     }
 
-    //프로그래스 다이얼로그 생성
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu, menu) ;
+        return true ;
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grandResults){
+        super.onRequestPermissionsResult(requestCode,permissions, grandResults);
+        if(Build.VERSION.SDK_INT>=23){
+            if(grandResults[0]==PackageManager.PERMISSION_GRANTED){
+                Log.v(TAG, "Permission: " + permissions[0] + " was " + grandResults[0]);
+            }
+        }
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        int id = item.getItemId();
+
+
+        if (id == R.id.setting_btn) {
+            Log.d(this.getClass().getName(), "onOptionsItemSelected 실행");
+            Intent intentSubActivity = new Intent(this, SettingActivity.class);
+            startActivity(intentSubActivity);
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    public class FindPOI extends Thread{
+
+        @Override
+        public void run() {
+            findPOI();
+        }
+        public void findPOI(){
+            tMapData.findAllPOI(search, new TMapData.FindAllPOIListenerCallback() {
+
+                @Override
+                public void onFindAllPOI(ArrayList<TMapPOIItem> poiItems) {
+                    Log.d(TAG, "First poi item : "+poiItems.get(0).getPOIName() + ", Point : " + poiItems.get(0).getPOIPoint().toString());
+                    editText.setText(poiItems.get(0).getPOIName());
+                    endPoint = poiItems.get(0).getPOIPoint();
+                    latitude = endPoint.getLatitude();
+                    longitude = endPoint.getLongitude();
+                    Log.d(TAG,"POI item : " +latitude +", " + longitude);
+                }
+
+            });
+
+            try {
+                Thread.sleep(1000);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+
+            String location = editText.getText().toString();
+            while(location==null){}
+            String speak = location + " 를 목적지로 정하시겠어요?";
+
+            Log.d(TAG, "목적지 : " + location);
+            tts.speak(speak,TextToSpeech.QUEUE_FLUSH,null);
+            Thread.currentThread().interrupt();
+        }
+
+        @Override
+        public void interrupt() {
+            super.interrupt();
+        }
+    }
+    //음성인식
+    public void inputVoice() {
+        //음성인식
+        intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
+        //intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS,5000);
+        intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getApplicationContext().getPackageName());
+        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR");
+        mRecognizer = SpeechRecognizer.createSpeechRecognizer(getApplicationContext());
+        mRecognizer.setRecognitionListener(listener);
+        mRecognizer.startListening(intent);
+        runnable = new Runnable() {
+            @Override
+            public void run() {
+                mRecognizer.startListening(intent);
+            }
+        };
+    }
+
+    private RecognitionListener listener = new RecognitionListener() {
+
+
+        @Override
+        public void onReadyForSpeech(Bundle params){
+            toast("말하세요");
+        }
+
+        @Override
+        public void onBeginningOfSpeech() {
+            Log.d(TAG, "onBeginningOfSpeech");
+        }
+
+        @Override
+        public void onRmsChanged(float rmsdB) {}
+
+        @Override
+        public void onBufferReceived(byte[] buffer) {}
+
+        @Override
+        public void onEndOfSpeech() {
+            Log.d(TAG, "onEndOfSpeech");
+        }
+
+        @Override
+        public void onError(int error) {
+
+            String message;
+            switch (error) {
+                case SpeechRecognizer.ERROR_AUDIO:
+                    message = "오디오 에러";
+                    break;
+                case SpeechRecognizer.ERROR_CLIENT:
+                    message = "클라이언트 에러";
+                    break;
+                case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS:
+                    message = "퍼미션 없음";
+                    break;
+                case SpeechRecognizer.ERROR_NETWORK:
+                    message = "네트워크 에러";
+                    break;
+                case SpeechRecognizer.ERROR_NETWORK_TIMEOUT:
+                    message = "네트웍 타임아웃";
+                    break;
+                case SpeechRecognizer.ERROR_NO_MATCH:
+                    message = "찾을 수 없음";
+                    break;
+                case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
+                    message = "RECOGNIZER가 바쁨";
+                    mRecognizer.stopListening();
+                    break;
+                case SpeechRecognizer.ERROR_SERVER:
+                    message = "서버가 이상함";
+                    break;
+                case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
+                    message = "말하는 시간초과";
+                    break;
+                default:
+                    message = "알 수 없는 오류임";
+                    break;
+            }
+            Log.d(TAG, "error " + message);
+
+            if(error!=SpeechRecognizer.ERROR_RECOGNIZER_BUSY && error != SpeechRecognizer.ERROR_CLIENT){
+                mRecognizer.startListening(intent);
+            }else{
+                toast("error");
+            }
+        }
+
+        @Override
+        public void onResults(Bundle results) {
+
+            mRecognizer.stopListening();
+
+            String key = SpeechRecognizer.RESULTS_RECOGNITION;
+            ArrayList<String> mResult = results.getStringArrayList(key);
+            String [] rs = new String[mResult.size()];
+            mResult.toArray(rs);
+
+
+            Log.d(TAG, "rs[0] : "+rs[0]);
+            search = rs[0];
+
+
+            FindPOI findPOI = new FindPOI();
+            Thread thread = new Thread(findPOI);
+            thread.start();
+
+            //mRecognizer.destroy();
+
+        }
+
+        @Override
+        public void onPartialResults(Bundle partialResults){
+        }
+
+        @Override
+        public void onEvent(int eventType, Bundle params) {
+
+        }
+
+    };
     // 프로그레스 다이얼로그 생성
     private class CheckTypesTask extends AsyncTask<Void, Void, Void> {
         ProgressDialog asyncDialog = new ProgressDialog(
@@ -220,9 +488,7 @@ public class MainActivity extends AppCompatActivity {
             for(BluetoothDevice bluetoothDevice : bluetoothDeviceSet) {
                 list.add(bluetoothDevice.getName());
             }
-
-
-            //connectDevice(device_name);
+            connectDevice(device_name);
             return null;
         }
 
@@ -338,232 +604,8 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-
-
-    @Override
-    protected void onStart() {
-        super.onStart();
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-        ttsFlag=sharedPreferences.getBoolean("voice_notification",false);
-        bluetoothFlag = sharedPreferences.getBoolean("bluetooth",false);
-        Log.d(TAG, "ttsFlag is " + ttsFlag);
-    }
-
-    public void inputVoice(){
-        //음성인식
-        intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        //intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS,5000);
-        intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getApplicationContext().getPackageName());
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE,"ko-KR");
-        mRecognizer = SpeechRecognizer.createSpeechRecognizer(getApplicationContext());
-        mRecognizer.setRecognitionListener(listener);
-        mRecognizer.startListening(intent);
-        runnable= new Runnable() {
-            @Override
-            public void run() {
-                mRecognizer.startListening(intent);
-            }
-        };
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu, menu) ;
-        return true ;
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grandResults){
-        super.onRequestPermissionsResult(requestCode,permissions, grandResults);
-        if(Build.VERSION.SDK_INT>=23){
-            if(grandResults[0]==PackageManager.PERMISSION_GRANTED){
-                Log.v(TAG, "Permission: " + permissions[0] + " was " + grandResults[0]);
-            }
-        }
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-
-        int id = item.getItemId();
-
-
-        if (id == R.id.setting_btn) {
-            Log.d(this.getClass().getName(), "onOptionsItemSelected 실행");
-            Intent intentSubActivity = new Intent(this, SettingActivity.class);
-            startActivity(intentSubActivity);
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
-
-    //음성인식
-    private RecognitionListener listener = new RecognitionListener() {
-
-        boolean doubleResult =true;
-        int STT_RESULT =0;
-
-        @Override
-        public void onReadyForSpeech(Bundle params){
-            toast("말하세요");
-        }
-
-        @Override
-        public void onBeginningOfSpeech() {
-            doubleResult =false;
-            Log.d(TAG, "onBeginningOfSpeech");
-        }
-
-        @Override
-        public void onRmsChanged(float rmsdB) {}
-
-        @Override
-        public void onBufferReceived(byte[] buffer) {}
-
-        @Override
-        public void onEndOfSpeech() {
-            Log.d(TAG, "onEndOfSpeech");
-        }
-
-        @Override
-        public void onError(int error) {
-
-            String message;
-            switch (error) {
-                case SpeechRecognizer.ERROR_AUDIO:
-                    message = "오디오 에러";
-                    break;
-                case SpeechRecognizer.ERROR_CLIENT:
-                    message = "클라이언트 에러";
-                    break;
-                case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS:
-                    message = "퍼미션 없음";
-                    break;
-                case SpeechRecognizer.ERROR_NETWORK:
-                    message = "네트워크 에러";
-                    break;
-                case SpeechRecognizer.ERROR_NETWORK_TIMEOUT:
-                    message = "네트웍 타임아웃";
-                    break;
-                case SpeechRecognizer.ERROR_NO_MATCH:
-                    message = "찾을 수 없음";
-                    break;
-                case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
-                    message = "RECOGNIZER가 바쁨";
-                    mRecognizer.stopListening();
-                    break;
-                case SpeechRecognizer.ERROR_SERVER:
-                    message = "서버가 이상함";
-                    break;
-                case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
-                    message = "말하는 시간초과";
-                    break;
-                default:
-                    message = "알 수 없는 오류임";
-                    break;
-            }
-            Log.d(TAG, "error " + message);
-            toast("error");
-
-            if(error!=SpeechRecognizer.ERROR_RECOGNIZER_BUSY){
-                mRecognizer.startListening(intent);
-            }
-        }
-
-        @Override
-        public void onResults(Bundle results) {
-
-            if(!doubleResult){
-
-                Log.d(TAG, "STT_Result = " + STT_RESULT);
-
-                String key = SpeechRecognizer.RESULTS_RECOGNITION;
-                ArrayList<String> mResult = results.getStringArrayList(key);
-                String [] rs = new String[mResult.size()];
-                mResult.toArray(rs);
-                String speak = "";
-                doubleResult=true;
-
-                Log.d(TAG, "rs[0] : "+rs[0]);
-
-                if(STT_RESULT==0){
-                    editText.setText(rs[0]);
-                    mRecognizer.stopListening();
-                    STT_RESULT=1;
-                    speak = rs[0] + " 를 목적지로 정하시겠어요?";
-
-                    Log.d(TAG, "목적지 : " + rs[0]);
-                    tts.speak(speak,TextToSpeech.QUEUE_FLUSH,null);
-
-                    new Waiter().execute();
-
-                }else{
-                    Log.d(TAG, rs[0]);
-
-                    if(rs[0].equals("네")){
-
-                        Log.d(TAG, "Navigation activity will start");
-                        STT_RESULT=0;
-
-                        mRecognizer.stopListening();
-                        mRecognizer.cancel();
-                        mRecognizer.destroy();
-
-                        Intent intent1 = new Intent(getApplicationContext(), NavigationActivity.class);
-                        intent1.putExtra("destination", editText.getText().toString());
-                        startActivity(intent1);
-
-                    }else{
-                        Log.d(TAG, "Ask again");
-                        STT_RESULT=0;
-                        editText.setText("");
-
-                        tts.speak("목적지를 다시 말해주세요",TextToSpeech.QUEUE_FLUSH,null);
-
-                        new Waiter().execute();
-                    }
-
-                }
-
-            }
-        }
-
-        @Override
-        public void onPartialResults(Bundle partialResults){
-        }
-
-        @Override
-        public void onEvent(int eventType, Bundle params) {
-
-        }
-
-    };
-
-
-
     private void toast(String msg){
         Toast.makeText(this,msg, Toast.LENGTH_LONG).show();
-    }
-
-
-    class Waiter extends AsyncTask<Void,Void,Void>{
-
-        @Override
-        protected Void doInBackground(Void... voids) {
-
-            while(tts.isSpeaking()){
-                try{Thread.sleep(1000); Log.d(TAG, "tts is speaking now...");}catch (Exception e){}
-            }
-
-            Log.d(TAG, "tts is done.");
-            handler.post(runnable);
-            return null;
-        }
-
-        @Override
-        protected void onPostExecute(Void aVoid){
-            super.onPostExecute(aVoid);
-        }
     }
 
 }
