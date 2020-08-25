@@ -22,7 +22,6 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Locale;
 
@@ -39,7 +38,7 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
     private TextToSpeech tts;
     TMapPoint startPoint;
     TMapPoint endPoint;
-    int index=-1;
+    boolean nullLocation=true;
     double prev_lat;
     double prev_long;
     LinkedList<String> coordinates = new LinkedList<String>();
@@ -101,17 +100,19 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
 
     @Override
     public void onLocationChange(Location location) {
-        Log.d(TAG, "Location Changed ! index: "+ index );
+        Log.d(TAG, "Location Changed ! index: "+ nullLocation );
         if(m_bTrackingMode){
             tMapView.setLocationPoint(location.getLongitude(),location.getLatitude());
         }
         FindPath findPath = new FindPath();
-        if(index==-1){
+        if(nullLocation) {
             startPoint = new TMapPoint(location.getLatitude(), location.getLongitude());
             Thread thread = new Thread(findPath);
             thread.start();
-            index = 0;
+            nullLocation=false;
+
         }
+
         boolean in = Distance(location);
         if (in == false){
             Log.d(TAG, "wrong route!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
@@ -146,12 +147,29 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
 
             }
         }
+
+    }
+
+    @Override
+    protected void onStart(){
+        Log.d(TAG, "Navigation Activity is on Start");
+        super.onStart();
+
+    }
+    @Override
+    protected void onStop() {
+        Log.d(TAG, "Navigation Activity is on Stop");
+        super.onStop();
+        tts.stop();
     }
 
     private boolean Distance(Location location){
         String peek = coordinates.peek();
         double longitude = Math.round(location.getLongitude()*1000000)/1000000.0;
         double latitude = Math.round(location.getLatitude()*1000000)/1000000.0;
+        if(peek==null){
+            return true;
+        }
         double p_longitude = Math.round(Double.parseDouble(peek.split(",")[0])*1000000)/1000000.0;
         double p_latitude = Math.round(Double.parseDouble(peek.split(",")[1])*1000000)/1000000.0;
 
@@ -231,7 +249,10 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
 
                         }
                     }
-
+                    Log.d(TAG, "First Navigation");
+                    coordinates.poll();
+                    speech(navigation.peek());
+                    navigation.poll();
                 }
 
             });

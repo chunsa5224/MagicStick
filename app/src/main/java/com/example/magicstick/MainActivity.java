@@ -177,8 +177,9 @@ public class MainActivity extends AppCompatActivity {
                             isTtsFlag=false;
                             Log.d(TAG, editText.getText().toString());
                             tts.stop();
-                            tts.shutdown();
-                            mRecognizer.destroy();
+                            //tts.shutdown();
+                            mRecognizer.stopListening();
+                            //mRecognizer.destroy();
                             Intent intent1 = new Intent(getApplicationContext(), NavigationActivity.class);
                             intent1.putExtra("destination", editText.getText().toString());
                             intent1.putExtra("d_latitude", latitude);
@@ -237,11 +238,34 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onStart() {
+        Log.d(TAG, "Main Activity is on Start");
         super.onStart();
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         ttsFlag=sharedPreferences.getBoolean("voice_notification",false);
         bluetoothFlag = sharedPreferences.getBoolean("bluetooth",false);
+        // 음성출력
+        tts = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status) {
+                if(status!= TextToSpeech.ERROR){
+                    tts.setLanguage(Locale.KOREAN);
+                }
+            }
+        });
+        tts.setPitch(1.0f);
+        tts.setSpeechRate(1.0f);
         Log.d(TAG, "ttsFlag is " + ttsFlag);
+    }
+
+    @Override
+    protected void onStop() {
+        Log.d(TAG, "Main Activity is on Stop");
+        super.onStop();
+        tts.stop();
+        if(mRecognizer!=null) mRecognizer.destroy();//mRecognizer.stopListening();//
+
+
+
     }
 
     @Override
@@ -423,15 +447,6 @@ public class MainActivity extends AppCompatActivity {
             Thread thread = new Thread(findPOI);
             thread.start();
 
-            /*String speak = rs[0] + " 를 목적지로 정하시겠어요?";
-
-            Log.d(TAG, "목적지 : " + rs[0]);
-            tts.speak(speak,TextToSpeech.QUEUE_FLUSH,null);
-            try {
-                Thread.sleep(3000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }*/
             //mRecognizer.destroy();
 
         }
@@ -446,169 +461,6 @@ public class MainActivity extends AppCompatActivity {
         }
 
     };
-
-
-
-
-    /* 기존 음성인식
-    public void inputVoice(){
-        //음성인식
-        intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        //intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS,5000);
-        intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getApplicationContext().getPackageName());
-        intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE,"ko-KR");
-        mRecognizer = SpeechRecognizer.createSpeechRecognizer(getApplicationContext());
-        mRecognizer.setRecognitionListener(listener);
-        mRecognizer.startListening(intent);
-        runnable= new Runnable() {
-            @Override
-            public void run() {
-                mRecognizer.startListening(intent);
-            }
-        };
-    }
-      private RecognitionListener listener = new RecognitionListener() {
-
-        boolean doubleResult =true;
-        int STT_RESULT =0;
-
-        @Override
-        public void onReadyForSpeech(Bundle params){
-            toast("말하세요");
-        }
-
-        @Override
-        public void onBeginningOfSpeech() {
-            doubleResult =false;
-            Log.d(TAG, "onBeginningOfSpeech");
-        }
-
-        @Override
-        public void onRmsChanged(float rmsdB) {}
-
-        @Override
-        public void onBufferReceived(byte[] buffer) {}
-
-        @Override
-        public void onEndOfSpeech() {
-            Log.d(TAG, "onEndOfSpeech");
-        }
-
-        @Override
-        public void onError(int error) {
-
-            String message;
-            switch (error) {
-                case SpeechRecognizer.ERROR_AUDIO:
-                    message = "오디오 에러";
-                    break;
-                case SpeechRecognizer.ERROR_CLIENT:
-                    message = "클라이언트 에러";
-                    break;
-                case SpeechRecognizer.ERROR_INSUFFICIENT_PERMISSIONS:
-                    message = "퍼미션 없음";
-                    break;
-                case SpeechRecognizer.ERROR_NETWORK:
-                    message = "네트워크 에러";
-                    break;
-                case SpeechRecognizer.ERROR_NETWORK_TIMEOUT:
-                    message = "네트웍 타임아웃";
-                    break;
-                case SpeechRecognizer.ERROR_NO_MATCH:
-                    message = "찾을 수 없음";
-                    break;
-                case SpeechRecognizer.ERROR_RECOGNIZER_BUSY:
-                    message = "RECOGNIZER가 바쁨";
-                    mRecognizer.stopListening();
-                    break;
-                case SpeechRecognizer.ERROR_SERVER:
-                    message = "서버가 이상함";
-                    break;
-                case SpeechRecognizer.ERROR_SPEECH_TIMEOUT:
-                    message = "말하는 시간초과";
-                    break;
-                default:
-                    message = "알 수 없는 오류임";
-                    break;
-            }
-            Log.d(TAG, "error " + message);
-            toast("error");
-
-            if(error!=SpeechRecognizer.ERROR_RECOGNIZER_BUSY){
-                mRecognizer.startListening(intent);
-            }
-        }
-
-        @Override
-        public void onResults(Bundle results) {
-
-            if(!doubleResult){
-
-                Log.d(TAG, "STT_Result = " + STT_RESULT);
-
-                String key = SpeechRecognizer.RESULTS_RECOGNITION;
-                ArrayList<String> mResult = results.getStringArrayList(key);
-                String [] rs = new String[mResult.size()];
-                mResult.toArray(rs);
-                String speak = "";
-                doubleResult=true;
-
-                Log.d(TAG, "rs[0] : "+rs[0]);
-
-                if(STT_RESULT==0){
-                    editText.setText(rs[0]);
-                    mRecognizer.stopListening();
-                    STT_RESULT=1;
-                    speak = rs[0] + " 를 목적지로 정하시겠어요?";
-
-                    Log.d(TAG, "목적지 : " + rs[0]);
-                    tts.speak(speak,TextToSpeech.QUEUE_FLUSH,null);
-
-                    new Waiter().execute();
-
-                }else{
-                    Log.d(TAG, rs[0]);
-
-                    if(rs[0].equals("네")){
-
-                        Log.d(TAG, "Navigation activity will start");
-                        STT_RESULT=0;
-
-                        mRecognizer.stopListening();
-                        mRecognizer.cancel();
-                        mRecognizer.destroy();
-
-                        Intent intent1 = new Intent(getApplicationContext(), NavigationActivity.class);
-                        intent1.putExtra("destination", editText.getText().toString());
-                        startActivity(intent1);
-
-                    }else{
-                        Log.d(TAG, "Ask again");
-                        STT_RESULT=0;
-                        editText.setText("");
-
-                        tts.speak("목적지를 다시 말해주세요",TextToSpeech.QUEUE_FLUSH,null);
-
-                        new Waiter().execute();
-                    }
-
-                }
-
-            }
-        }
-
-        @Override
-        public void onPartialResults(Bundle partialResults){
-        }
-
-        @Override
-        public void onEvent(int eventType, Bundle params) {
-
-        }
-
-    };
-*/
-
     // 프로그레스 다이얼로그 생성
     private class CheckTypesTask extends AsyncTask<Void, Void, Void> {
         ProgressDialog asyncDialog = new ProgressDialog(
