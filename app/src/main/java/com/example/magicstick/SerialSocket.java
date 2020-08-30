@@ -13,6 +13,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Build;
+import android.os.Handler;
 import android.util.Log;
 
 import java.io.IOException;
@@ -40,7 +41,7 @@ class SerialSocket extends BluetoothGattCallback {
         boolean canWrite() { return true; }
         void disconnect() {/*nop*/ }
     }
-
+    final Handler handler = new Handler();
     private static final UUID BLUETOOTH_LE_CCCD           = UUID.fromString("00002902-0000-1000-8000-00805f9b34fb");
     private static final UUID BLUETOOTH_LE_CC254X_SERVICE = UUID.fromString("0000ffe0-0000-1000-8000-00805f9b34fb");
     private static final UUID BLUETOOTH_LE_CC254X_CHAR_RW = UUID.fromString("0000ffe1-0000-1000-8000-00805f9b34fb");
@@ -157,12 +158,32 @@ class SerialSocket extends BluetoothGattCallback {
             gatt = device.connectGatt(context, false, this);
         } else {
             Log.d(TAG, "connectGatt,LE");
-            gatt = device.connectGatt(context, false, this, BluetoothDevice.TRANSPORT_LE);
+            gatt = device.connectGatt(context, true, this, BluetoothDevice.TRANSPORT_LE);
+            Log.d(TAG, "connectGatt,LE : "+ gatt.getConnectionState(device));
+
+            handler.postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    if(gatt_status_133)
+                    {
+                        Log.d(TAG, "Catch issue");
+                        try {
+                            connect(listener);
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
+                        gatt_status_133=false;
+                    }
+                }
+            }, 4000);
         }
         if (gatt == null)
             throw new IOException("connectGatt failed");
         // continues asynchronously in onPairingBroadcastReceive() and onConnectionStateChange()
     }
+
+
+
 
     private void onPairingBroadcastReceive(Context context, Intent intent) {
         // for ARM Mbed, Microbit, ... use pairing from Android bluetooth settings
@@ -187,15 +208,19 @@ class SerialSocket extends BluetoothGattCallback {
                 break;
         }
     }
-
+    private static boolean gatt_status_133 = false;
     @Override
     public void onConnectionStateChange(BluetoothGatt gatt, int status, int newState) {
         // status directly taken from gat_api.h, e.g. 133=0x85=GATT_ERROR ~= timeout
+        Log.d(TAG, "what the fuck");
         if (newState == BluetoothProfile.STATE_CONNECTED) {
             Log.d(TAG,"connect status "+status+", discoverServices");
             if (!gatt.discoverServices())
                 onSerialConnectError(new IOException("discoverServices failed"));
         } else if (newState == BluetoothProfile.STATE_DISCONNECTED) {
+            if(status ==133){
+                gatt_status_133=true;
+            }
             if (connected)
                 onSerialIoError     (new IOException("gatt status " + status));
             else
