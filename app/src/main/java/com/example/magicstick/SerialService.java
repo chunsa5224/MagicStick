@@ -1,20 +1,13 @@
 package com.example.magicstick;
 
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.app.Service;
-import android.content.Context;
 import android.content.Intent;
 import android.os.Binder;
-import android.os.Build;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
 
 import androidx.annotation.Nullable;
-import androidx.core.app.NotificationCompat;
 
 import java.io.IOException;
 import java.util.LinkedList;
@@ -60,7 +53,7 @@ public class SerialService extends Service implements SerialListener {
 
     @Override
     public void onDestroy() {
-        cancelNotification();
+        //cancelNotification();
         disconnect();
         super.onDestroy();
     }
@@ -82,7 +75,7 @@ public class SerialService extends Service implements SerialListener {
 
     public void disconnect() {
         connected = false; // ignore data,errors while disconnecting
-        cancelNotification();
+        //cancelNotification();
         if(socket != null) {
             socket.disconnect();
             socket = null;
@@ -98,7 +91,7 @@ public class SerialService extends Service implements SerialListener {
     public void attach(SerialListener listener) {
         if(Looper.getMainLooper().getThread() != Thread.currentThread())
             throw new IllegalArgumentException("not in main thread");
-        cancelNotification();
+        //cancelNotification();
         // use synchronized() to prevent new items in queue2
         // new items will not be added to queue1 because mainLooper.post and attach() run in main thread
         synchronized (this) {
@@ -126,13 +119,13 @@ public class SerialService extends Service implements SerialListener {
 
     public void detach() {
         if(connected)
-            createNotification();
+            //createNotification();
         // items already in event queue (posted before detach() to mainLooper) will end up in queue1
         // items occurring later, will be moved directly to queue2
         // detach() and mainLooper.post run in the main thread, so all items are caught
         listener = null;
     }
-
+/**
     private void createNotification() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             NotificationChannel nc = new NotificationChannel(Constants.NOTIFICATION_CHANNEL, "Background service", NotificationManager.IMPORTANCE_LOW);
@@ -165,7 +158,7 @@ public class SerialService extends Service implements SerialListener {
     private void cancelNotification() {
         stopForeground(true);
     }
-
+*/
     /**
      * SerialListener
      */
@@ -196,13 +189,13 @@ public class SerialService extends Service implements SerialListener {
                             listener.onSerialConnectError(e);
                         } else {
                             queue1.add(new QueueItem(QueueType.ConnectError, null, e));
-                            cancelNotification();
+                            //cancelNotification();
                             disconnect();
                         }
                     });
                 } else {
                     queue2.add(new QueueItem(QueueType.ConnectError, null, e));
-                    cancelNotification();
+                    //cancelNotification();
                     disconnect();
                 }
             }
@@ -236,13 +229,13 @@ public class SerialService extends Service implements SerialListener {
                             listener.onSerialIoError(e);
                         } else {
                             queue1.add(new QueueItem(QueueType.IoError, null, e));
-                            cancelNotification();
+                            //cancelNotification();
                             disconnect();
                         }
                     });
                 } else {
                     queue2.add(new QueueItem(QueueType.IoError, null, e));
-                    cancelNotification();
+                    //cancelNotification();
                     disconnect();
                 }
             }

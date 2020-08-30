@@ -5,20 +5,19 @@ import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
-import android.content.Context;
+import android.content.ComponentName;
 import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.os.Message;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
-import android.renderscript.ScriptGroup;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -35,22 +34,18 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
-
 import com.skt.Tmap.TMapData;
 import com.skt.Tmap.TMapPOIItem;
 import com.skt.Tmap.TMapPoint;
 import com.skt.Tmap.TMapView;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Locale;
 import java.util.Set;
-import java.util.UUID;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ServiceConnection, SerialListener {
 
     public static InputStream inputStream;
     public static OutputStream outputStream;
@@ -63,10 +58,11 @@ public class MainActivity extends AppCompatActivity {
     private BluetoothSocket bluetoothSocket;
     private Thread workerThread = null; // 문자열 수신에 사용되는 쓰레드
     private byte[] readBuffer; // 수신 된 문자열을 저장하기 위한 버퍼
+    private String device_name = "Galaxy";
+
 
     private int readBufferPosition; // 버퍼 내 문자 저장 위치
     private int checknumber=0;
-
     private boolean ttsFlag = true;
     private boolean bluetoothFlag = false;
     private static final int REQUEST_ENABLE_BT = 10; // 블루투스 활성화 상태
@@ -81,9 +77,17 @@ public class MainActivity extends AppCompatActivity {
     private String search;
     private TMapView tMapView =null;
 
+    private SerialService service;
+
+    private enum Connected { False, Pending, True }
+    private boolean initialStart = true;
+    private Connected connected = Connected.False;
     // 블루투스 사용 객체
     BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
     Intent intent;
+
+
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -93,7 +97,13 @@ public class MainActivity extends AppCompatActivity {
         tMapView = new TMapView(getApplicationContext());
         tMapView.setSKTMapApiKey(appKey);
 
+        if(service != null) {
+            service.attach(this);
+        }
+        else {
+            startService(new Intent(this, SerialService.class)); // prevents service destroy on unbind from recreated activity caused by orientation change
 
+        }
         //권한 요청
         if(Build.VERSION.SDK_INT>=23){
             if((ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)!= PackageManager.PERMISSION_GRANTED)
@@ -197,9 +207,23 @@ public class MainActivity extends AppCompatActivity {
                         if(!isTtsFlag){
                             toast("swipe bottom");
                             //블루투스 On
+
                             bluetoothAdapter.enable();
-                            CheckTypesTask task = new CheckTypesTask();
-                            task.execute();
+
+                            bluetoothDeviceSet = bluetoothAdapter.getBondedDevices();
+                            /**
+                             // 리스트를 만듬
+                             List<String> list = new ArrayList<>();
+                             for(BluetoothDevice bluetoothDevice : bluetoothDeviceSet) {
+                             list.add(bluetoothDevice.getName());
+                             }
+                             */
+                            Log.d(TAG, "bluetooth : "+bluetoothDeviceSet);
+
+                            connect(device_name);
+
+                            //CheckTypesTask task = new CheckTypesTask();
+                            //task.execute();
                         }else{
                             inputVoice();
                         }
@@ -214,7 +238,7 @@ public class MainActivity extends AppCompatActivity {
                         else {
                             toast("start Object Detection");
                             try{
-                                receiveData();
+
                             }catch (Exception e){
                                 // 쓰레드에서 UI처리를 위한 핸들러
                                 Message msg = handler.obtainMessage();
@@ -262,7 +286,7 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "Main Activity is on Stop");
         super.onStop();
         tts.stop();
-        if(mRecognizer!=null) mRecognizer.destroy();//mRecognizer.stopListening();//
+        if(mRecognizer!=null) mRecognizer.destroy(); //mRecognizer.stopListening();//
 
 
 
@@ -297,6 +321,80 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public void onServiceConnected(ComponentName componentName, IBinder binder) {
+        service = ((SerialService.SerialBinder) binder).getService();
+        service.attach(this);
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName componentName) {
+
+        service=null;
+    }
+
+    private void connect(String device_name) {
+        try {
+
+            String deviceAddress = null;
+            for(BluetoothDevice devices : bluetoothDeviceSet) {
+                if(devices.getName().contains(device_name)) {
+                    bluetoothDevice = devices;
+                    checknumber=1;
+                    //모듈화시 사용 , 변수 저장하여 넘김
+                    //Bundle args = new Bundle();
+                    //args.putString("device",device.getAddress());
+
+                    deviceAddress = devices.getAddress();
+
+                    break;
+
+                }
+            }
+            Log.d(TAG, "Device name "+bluetoothDevice);
+            BluetoothDevice device = bluetoothAdapter.getRemoteDevice(deviceAddress);
+
+
+            Log.d(TAG, "Device2 : "+device);
+
+            connected = Connected.Pending;
+            SerialSocket socket = new SerialSocket(getApplicationContext(), device);
+            Log.d(TAG, "get socket : "+socket);
+            service.connect(socket);
+        } catch (Exception e) {
+            onSerialConnectError(e);
+        }
+    }
+
+    private void disconnect() {
+        connected = Connected.False;
+        service.disconnect();
+    }
+    //serial Listener
+    @Override
+    public void onSerialConnect() {
+        connected = Connected.True;
+    }
+
+    @Override
+    public void onSerialConnectError(Exception e) {
+        disconnect();
+    }
+
+    @Override
+    public void onSerialRead(byte[] data) {
+        receive(data);
+    }
+
+    private void receive(byte[] data) {
+        toast(new String(data));
+    }
+
+    @Override
+    public void onSerialIoError(Exception e) {
+        disconnect();
     }
 
     public class FindPOI extends Thread{
@@ -482,13 +580,14 @@ public class MainActivity extends AppCompatActivity {
         protected Void doInBackground(Void... arg0) {
 
             bluetoothDeviceSet = bluetoothAdapter.getBondedDevices();
-
+            /**
             // 리스트를 만듬
             List<String> list = new ArrayList<>();
             for(BluetoothDevice bluetoothDevice : bluetoothDeviceSet) {
                 list.add(bluetoothDevice.getName());
             }
-            connectDevice(device_name);
+            */
+            connect(device_name);
             return null;
         }
 
@@ -499,7 +598,7 @@ public class MainActivity extends AppCompatActivity {
             super.onPostExecute(result);
         }
     }
-
+    /*
     // 클릭 된 디바이스와 연결하는 함수
     public void connectDevice(String deviceName) {
         // 블루투스 연결 할 디바이스를 찾음
@@ -508,6 +607,12 @@ public class MainActivity extends AppCompatActivity {
             if(device.getName().contains(deviceName)) {
                 bluetoothDevice = device;
                 checknumber=1;
+                //모듈화시 사용 , 변수 저장하여 넘김
+                //Bundle args = new Bundle();
+                //args.putString("device",device.getAddress());
+
+                String deviceAddress = device.getAddress();
+                service.attach((SerialListener) this);
                 break;
             }
         }
@@ -597,6 +702,8 @@ public class MainActivity extends AppCompatActivity {
         });
         workerThread.start();
     }
+
+     */
     // 핸들러 선언
     final Handler handler = new Handler() {
         public void handleMessage(Message msg) {
