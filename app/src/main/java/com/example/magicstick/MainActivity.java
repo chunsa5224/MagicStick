@@ -6,6 +6,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
 import android.content.ComponentName;
+import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
@@ -58,7 +59,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     private BluetoothSocket bluetoothSocket;
     private Thread workerThread = null; // 문자열 수신에 사용되는 쓰레드
     private byte[] readBuffer; // 수신 된 문자열을 저장하기 위한 버퍼
-    private String device_name = "Galaxy";
+
 
 
     private int readBufferPosition; // 버퍼 내 문자 저장 위치
@@ -68,7 +69,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     private static final int REQUEST_ENABLE_BT = 10; // 블루투스 활성화 상태
     private final String TAG = getClass().getName();
     private static boolean isTtsFlag = false;    //TTS 활성화 상태
-
+    private String device_name = "rasp";
     private static String appKey ="l7xx9ed3bc26b00f404b816bb3b6e2f44ec9";
     private final TMapData tMapData = new TMapData();
     TMapPoint endPoint;
@@ -83,7 +84,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     private boolean initialStart = true;
     private Connected connected = Connected.False;
     // 블루투스 사용 객체
-    BluetoothAdapter bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+    private BluetoothAdapter bluetoothAdapter;
     Intent intent;
 
 
@@ -96,14 +97,8 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         editText = (EditText)findViewById(R.id.editText);
         tMapView = new TMapView(getApplicationContext());
         tMapView.setSKTMapApiKey(appKey);
+        bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
-        if(service != null) {
-            service.attach(this);
-        }
-        else {
-            startService(new Intent(this, SerialService.class)); // prevents service destroy on unbind from recreated activity caused by orientation change
-
-        }
         //권한 요청
         if(Build.VERSION.SDK_INT>=23){
             if((ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)!= PackageManager.PERMISSION_GRANTED)
@@ -220,7 +215,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                              */
                             Log.d(TAG, "bluetooth : "+bluetoothDeviceSet);
 
-                            connect(device_name);
+                            connect();
 
                             //CheckTypesTask task = new CheckTypesTask();
                             //task.execute();
@@ -264,6 +259,13 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     protected void onStart() {
         Log.d(TAG, "Main Activity is on Start");
         super.onStart();
+        if(service != null && !initialStart) {
+            service.attach(this);
+        }
+        else {
+            this.startService(new Intent(getApplicationContext(), SerialService.class)); // prevents service destroy on unbind from recreated activity caused by orientation change
+            this.bindService(new Intent(getApplicationContext(), SerialService.class), this, Context.BIND_AUTO_CREATE);
+        }
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         ttsFlag=sharedPreferences.getBoolean("voice_notification",false);
         bluetoothFlag = sharedPreferences.getBoolean("bluetooth",false);
@@ -279,10 +281,15 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         tts.setPitch(1.0f);
         tts.setSpeechRate(1.0f);
         Log.d(TAG, "ttsFlag is " + ttsFlag);
+
     }
+
 
     @Override
     protected void onStop() {
+        if(service != null && !isChangingConfigurations())
+            service.detach();
+            this.unbindService(this);
         Log.d(TAG, "Main Activity is on Stop");
         super.onStop();
         tts.stop();
@@ -323,19 +330,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         return super.onOptionsItemSelected(item);
     }
 
-    @Override
-    public void onServiceConnected(ComponentName componentName, IBinder binder) {
-        service = ((SerialService.SerialBinder) binder).getService();
-        service.attach(this);
-    }
-
-    @Override
-    public void onServiceDisconnected(ComponentName componentName) {
-
-        service=null;
-    }
-
-    private void connect(String device_name) {
+    private void connect() {
         try {
 
             String deviceAddress = null;
@@ -349,7 +344,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
 
                     deviceAddress = devices.getAddress();
 
-                    break;
+
 
                 }
             }
@@ -360,13 +355,41 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
             Log.d(TAG, "Device2 : "+device);
 
             connected = Connected.Pending;
-            SerialSocket socket = new SerialSocket(getApplicationContext(), device);
-            Log.d(TAG, "get socket : "+socket);
+            SerialSocket socket = new SerialSocket(this.getApplicationContext(), device);
+            Log.d(TAG, "get socket : "+socket.getName());
+            toast(socket.getName());
+
+
             service.connect(socket);
         } catch (Exception e) {
+
             onSerialConnectError(e);
         }
     }
+    @Override
+    public void onServiceConnected(ComponentName name, IBinder binder) {
+        service = ((SerialService.SerialBinder) binder).getService();
+        service.attach(this);
+        this.runOnUiThread(this::connect);
+
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName componentName) {
+
+        service=null;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        if(initialStart && service !=null) {
+            initialStart = false;
+            this.runOnUiThread(this::connect);
+        }
+    }
+
+
 
     private void disconnect() {
         connected = Connected.False;
@@ -375,11 +398,13 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     //serial Listener
     @Override
     public void onSerialConnect() {
+        Log.d(TAG, "Connected");
         connected = Connected.True;
     }
 
     @Override
     public void onSerialConnectError(Exception e) {
+        Log.d(TAG, "connection Failed : "+e.getMessage());
         disconnect();
     }
 
@@ -392,8 +417,10 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         toast(new String(data));
     }
 
+
     @Override
     public void onSerialIoError(Exception e) {
+        Log.d(TAG, "connection lost : "+e.getMessage());
         disconnect();
     }
 
@@ -587,7 +614,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                 list.add(bluetoothDevice.getName());
             }
             */
-            connect(device_name);
+            connect();
             return null;
         }
 
