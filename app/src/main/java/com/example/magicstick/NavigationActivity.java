@@ -1,6 +1,5 @@
 package com.example.magicstick;
 
-import android.app.IntentService;
 import android.content.Intent;
 import android.graphics.Color;
 import android.location.Location;

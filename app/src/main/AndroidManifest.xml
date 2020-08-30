@@ -24,9 +24,6 @@
             android:enabled="true"
             android:exported="true"></service>
 
-        <activity android:name=".bluetooth_connect"></activity>
-        <activity android:name=".bluetooth_talk" />
-        <activity android:name=".bluetooth_main" />
         <activity android:name=".NavigationActivity" />
         <activity android:name=".MainActivity">
             <intent-filter>
