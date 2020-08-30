@@ -1,5 +1,6 @@
 package com.example.magicstick;
 
+import android.app.IntentService;
 import android.content.Intent;
 import android.graphics.Color;
 import android.location.Location;
@@ -118,11 +119,14 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
 
         }else {
             String peek = coordinates.peek();
-
-            double longitude = Math.round(location.getLongitude()*1000000)/1000000.0;
+            double longitude = location.getLongitude();
+            double latitude = location.getLatitude();
+            double p_longitude = Double.parseDouble(peek.split(",")[0]);
+            double p_latitude = Double.parseDouble(peek.split(",")[1]);
+            /*double longitude = Math.round(location.getLongitude()*1000000)/1000000.0;
             double latitude = Math.round(location.getLatitude()*1000000)/1000000.0;
             double p_longitude = Math.round(Double.parseDouble(peek.split(",")[0])*1000000)/1000000.0;
-            double p_latitude = Math.round(Double.parseDouble(peek.split(",")[1])*1000000)/1000000.0;
+            double p_latitude = Math.round(Double.parseDouble(peek.split(",")[1])*1000000)/1000000.0;*/
             Log.d(TAG, "Current GPS : " + longitude + ", " + latitude);
             double dist = GpsToMeter(latitude,longitude,p_latitude,p_longitude);
             if(dist<=5){
@@ -155,13 +159,32 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
     }
 
     @Override
-    protected void onStop() {
-        Log.d(TAG, "Navigation Activity is on Stop");
-        super.onStop();
-        tts.stop();
+    protected void onPause() {
+        super.onPause();
+        Log.d(TAG, "Navigation activity is on Pause");
+        String [] naviArr = new String[navigation.size()];
+        String [] coordiArr= new String[navigation.size()];
+        for(int i =0; i<navigation.size(); i++){
+            naviArr[i]=navigation.get(i);
+            coordiArr[i]=coordinates.get(i);
+        }
+
+        Intent intent = new Intent(this, NavigationService.class);
+        intent.putExtra("navigation", naviArr);
+        intent.putExtra("coordinates", coordiArr);
+        startService(intent);
+
     }
 
-    private static double GpsToMeter(double lat1, double lon1, double lat2, double lon2) {
+    @Override
+    protected void onStop() {
+
+        Log.d(TAG, "Navigation Activity is on Stop");
+        super.onStop();
+        //tts.stop();
+    }
+
+    static double GpsToMeter(double lat1, double lon1, double lat2, double lon2) {
 
         double theta = lon1 - lon2;
         double dist = Math.sin(deg2rad(lat1)) * Math.sin(deg2rad(lat2)) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.cos(deg2rad(theta));
@@ -169,13 +192,7 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
         dist = rad2deg(dist);
         dist = dist * 60 * 1.1515;
         dist = dist * 1609.344;
-/*
-        if (unit == "kilometer") {
-            dist = dist * 1.609344;
-        } else if(unit == "meter"){
-            dist = dist * 1609.344;
-        }
-*/
+
         return (dist);
     }
 
