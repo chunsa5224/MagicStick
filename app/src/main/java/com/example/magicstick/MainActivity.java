@@ -211,7 +211,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                             bluetoothAdapter.enable();
 
                             bluetoothDeviceSet = bluetoothAdapter.getBondedDevices();
-                            /**
+                            /*
                              // 리스트를 만듬
                              List<String> list = new ArrayList<>();
                              for(BluetoothDevice bluetoothDevice : bluetoothDeviceSet) {
@@ -365,6 +365,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
             service.connect(socket);
         } catch (Exception e) {
             onSerialConnectError(e);
+
         }
     }
 

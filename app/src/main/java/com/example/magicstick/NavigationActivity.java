@@ -39,10 +39,14 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
     TMapPoint startPoint;
     TMapPoint endPoint;
     boolean nullLocation=true;
-    double prev_lat;
-    double prev_long;
-    LinkedList<String> coordinates = new LinkedList<String>();
-    LinkedList<String> navigation = new LinkedList<String>();
+    static double prev_lat;
+    static double prev_long;
+    static double curr_lat;
+    static double curr_long;
+    Intent serviceIntent;
+
+    static LinkedList<String> coordinates = new LinkedList<String>();
+    static LinkedList<String> navigation = new LinkedList<String>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -120,29 +124,29 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
             String peek = coordinates.peek();
             double longitude = location.getLongitude();
             double latitude = location.getLatitude();
-            double p_longitude = Double.parseDouble(peek.split(",")[0]);
-            double p_latitude = Double.parseDouble(peek.split(",")[1]);
+            curr_long = Double.parseDouble(peek.split(",")[0]);
+            curr_lat = Double.parseDouble(peek.split(",")[1]);
             /*double longitude = Math.round(location.getLongitude()*1000000)/1000000.0;
             double latitude = Math.round(location.getLatitude()*1000000)/1000000.0;
             double p_longitude = Math.round(Double.parseDouble(peek.split(",")[0])*1000000)/1000000.0;
             double p_latitude = Math.round(Double.parseDouble(peek.split(",")[1])*1000000)/1000000.0;*/
             Log.d(TAG, "Current GPS : " + longitude + ", " + latitude);
-            double dist = GpsToMeter(latitude,longitude,p_latitude,p_longitude);
+            double dist = GpsToMeter(latitude,longitude,curr_lat,curr_long);
             if(dist<=5){
                 Log.d(TAG, "Current navigation : " + navigation.peek());
                 speech(navigation.peek());
-                prev_lat = p_latitude;
-                prev_long = p_longitude;
+                prev_lat = curr_lat;
+                prev_long = curr_long;
                 coordinates.poll();
                 navigation.poll();
 
-            }else if(dist>=40){
-                Log.d(TAG, "wrong route!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
+            }else if(wrongRoute(latitude,longitude)){
+                Log.d(TAG, "wrong route!");
                 Thread thread = new Thread(findPath);
                 thread.start();
 
             }else{
-                Log.d(TAG," Go to " + p_longitude + " , " + p_latitude);
+                Log.d(TAG," Go to " + curr_lat + " , " + curr_long);
             }
 
         }
@@ -153,6 +157,9 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
     @Override
     protected void onStart(){
         Log.d(TAG, "Navigation Activity is on Start");
+        if(serviceIntent!=null){
+            stopService(serviceIntent);
+        }
         super.onStart();
 
     }
@@ -161,17 +168,19 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
     protected void onPause() {
         super.onPause();
         Log.d(TAG, "Navigation activity is on Pause");
-        String [] naviArr = new String[navigation.size()];
-        String [] coordiArr= new String[navigation.size()];
-        for(int i =0; i<navigation.size(); i++){
-            naviArr[i]=navigation.get(i);
-            coordiArr[i]=coordinates.get(i);
+        String [] naviArr = new String[navigation.size()+1];
+        String [] coordiArr= new String[navigation.size()+1];
+        coordiArr[0] = prev_long+","+prev_lat;
+        naviArr[0]="출발합니다.";
+        for(int i =1; i<=navigation.size(); i++){
+            naviArr[i]=navigation.get(i-1);
+            coordiArr[i]=coordinates.get(i-1);
         }
 
-        Intent intent = new Intent(this, NavigationService.class);
-        intent.putExtra("navigation", naviArr);
-        intent.putExtra("coordinates", coordiArr);
-        startService(intent);
+        Intent serviceIntent = new Intent(this, NavigationService.class);
+        serviceIntent.putExtra("navigation", naviArr);
+        serviceIntent.putExtra("coordinates", coordiArr);
+        startService(serviceIntent);
 
     }
 
@@ -187,11 +196,11 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
 
         double theta = lon1 - lon2;
         double dist = Math.sin(deg2rad(lat1)) * Math.sin(deg2rad(lat2)) + Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * Math.cos(deg2rad(theta));
+
         dist = Math.acos(dist);
         dist = rad2deg(dist);
         dist = dist * 60 * 1.1515;
         dist = dist * 1609.344;
-
         return (dist);
     }
 
@@ -206,7 +215,17 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
         return (rad * 180 / Math.PI);
     }
 
+    boolean wrongRoute(double latitude,double longitude){
 
+        double a = GpsToMeter(latitude,longitude,prev_lat,prev_long);
+        double b = GpsToMeter(latitude,longitude,curr_lat,curr_long);
+        double c = GpsToMeter(prev_lat,prev_long,curr_lat, curr_long);
+        Log.d("", "meter : " + a +", "+ b + ", "+ c);
+        double result = Math.sqrt(a*a - ( Math.pow(a*a-b*b+c*c,2) / (4*c*c) ) );
+        Log.d("Wrong Route?", result+"");
+        if(result>=40) return true;
+        else return false;
+    }
     @Override
     public void onInit(int status) {
         if (status == TextToSpeech.SUCCESS) {
@@ -271,6 +290,8 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
                         }
                     }
                     Log.d(TAG, "First Navigation");
+                    prev_lat = Double.parseDouble(coordinates.peek().split(",")[1]);
+                    prev_long = Double.parseDouble(coordinates.peek().split(",")[0]);
                     coordinates.poll();
                     speech(navigation.peek());
                     navigation.poll();

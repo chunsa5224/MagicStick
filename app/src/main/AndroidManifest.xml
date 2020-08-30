@@ -23,6 +23,10 @@
             android:name=".NavigationService"
             android:enabled="true"
             android:exported="true"></service>
+        <service
+            android:name=".SerialService"
+            android:enabled="true"
+            android:exported="true"></service>
 
         <activity android:name=".NavigationActivity" />
         <activity android:name=".MainActivity">
