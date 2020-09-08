@@ -1,7 +1,6 @@
 package com.example.magicstick;
 
 import android.Manifest;
-import android.app.ProgressDialog;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
@@ -11,7 +10,6 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.os.AsyncTask;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -216,7 +214,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                             Log.d(TAG, "bluetooth : "+bluetoothDeviceSet);
 
                             connect();
-
+                            Log.d(TAG, "connect");
                             //CheckTypesTask task = new CheckTypesTask();
                             //task.execute();
                         }else{
@@ -361,6 +359,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
 
 
             service.connect(socket);
+
         } catch (Exception e) {
 
             onSerialConnectError(e);
@@ -371,6 +370,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     public void onServiceConnected(ComponentName name, IBinder binder) {
         service = ((SerialService.SerialBinder) binder).getService();
         service.attach(this);
+        Log.d(TAG, "Onserviceconnected");
         this.runOnUiThread(this::connect);
 
     }
@@ -394,6 +394,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
 
     private void disconnect() {
         connected = Connected.False;
+        Log.d(TAG, "disconnected????");
         service.disconnect();
     }
     //serial Listener
@@ -587,6 +588,9 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         }
 
     };
+
+
+    /**
     // 프로그레스 다이얼로그 생성
     private class CheckTypesTask extends AsyncTask<Void, Void, Void> {
         ProgressDialog asyncDialog = new ProgressDialog(
@@ -608,13 +612,13 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         protected Void doInBackground(Void... arg0) {
 
             bluetoothDeviceSet = bluetoothAdapter.getBondedDevices();
-            /**
+            /*
             // 리스트를 만듬
             List<String> list = new ArrayList<>();
             for(BluetoothDevice bluetoothDevice : bluetoothDeviceSet) {
                 list.add(bluetoothDevice.getName());
             }
-            */
+            /
             connect();
             return null;
         }
@@ -626,6 +630,10 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
             super.onPostExecute(result);
         }
     }
+    */
+
+
+
     /*
     // 클릭 된 디바이스와 연결하는 함수
     public void connectDevice(String deviceName) {
