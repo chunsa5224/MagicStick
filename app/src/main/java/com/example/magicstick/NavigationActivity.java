@@ -43,10 +43,10 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
     static double prev_long;
     static double curr_lat;
     static double curr_long;
-    Intent serviceIntent;
 
-    static LinkedList<String> coordinates = new LinkedList<String>();
-    static LinkedList<String> navigation = new LinkedList<String>();
+
+    public static LinkedList<String> coordinates = new LinkedList<String>();
+    public static LinkedList<String> navigation = new LinkedList<String>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -74,8 +74,10 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
         //현위치 좌표계 받아오기
         tMapGps = new TMapGpsManager(this);
         tMapGps.setMinTime(1000);
+        //실외 - 실제 코드에 사용
+        tMapGps.setProvider(tMapGps.GPS_PROVIDER);
+        //실내 - 디버깅용
         tMapGps.setProvider(tMapGps.NETWORK_PROVIDER);
-        //tMapGps.setProvider(tMapGps.GPS_PROVIDER);
         tMapGps.OpenGps();
 
 
@@ -126,10 +128,7 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
             double latitude = location.getLatitude();
             curr_long = Double.parseDouble(peek.split(",")[0]);
             curr_lat = Double.parseDouble(peek.split(",")[1]);
-            /*double longitude = Math.round(location.getLongitude()*1000000)/1000000.0;
-            double latitude = Math.round(location.getLatitude()*1000000)/1000000.0;
-            double p_longitude = Math.round(Double.parseDouble(peek.split(",")[0])*1000000)/1000000.0;
-            double p_latitude = Math.round(Double.parseDouble(peek.split(",")[1])*1000000)/1000000.0;*/
+
             Log.d(TAG, "Current GPS : " + longitude + ", " + latitude);
             double dist = GpsToMeter(latitude,longitude,curr_lat,curr_long);
             if(dist<=5){
@@ -155,41 +154,39 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
     }
 
     @Override
-    protected void onStart(){
-        Log.d(TAG, "Navigation Activity is on Start");
-        if(serviceIntent!=null){
+    public void onWindowFocusChanged(boolean hasFocus) {
+        super.onWindowFocusChanged(hasFocus);
+        if(hasFocus){
+            Log.d(TAG, "Activity 가 화면 보여짐! ");
+            NavigationService.isStopped = true;
+            Intent serviceIntent = new Intent(this, NavigationService.class);
             stopService(serviceIntent);
+
+            coordinates= NavigationService.coordinates;
+            navigation= NavigationService.navigation;
+
+
+        }else{
+            Log.d(TAG, "lose focus");
+            while(tts.isSpeaking())
+                tts.stop();
+            tts.shutdown();
+            Intent serviceIntent = new Intent(this, NavigationService.class);
+            startService(serviceIntent);
+            Log.d(TAG, "Navigation Activity is on Stop");
+            if(tts== null) {
+                Log.d(TAG, "TTS Destroyed");
+            }
+
         }
-        super.onStart();
-
-    }
-
-    @Override
-    protected void onPause() {
-        super.onPause();
-        Log.d(TAG, "Navigation activity is on Pause");
-        String [] naviArr = new String[navigation.size()+1];
-        String [] coordiArr= new String[navigation.size()+1];
-        coordiArr[0] = prev_long+","+prev_lat;
-        naviArr[0]="출발합니다.";
-        for(int i =1; i<=navigation.size(); i++){
-            naviArr[i]=navigation.get(i-1);
-            coordiArr[i]=coordinates.get(i-1);
-        }
-
-        Intent serviceIntent = new Intent(this, NavigationService.class);
-        serviceIntent.putExtra("navigation", naviArr);
-        serviceIntent.putExtra("coordinates", coordiArr);
-        startService(serviceIntent);
-
     }
 
     @Override
     protected void onStop() {
 
-        Log.d(TAG, "Navigation Activity is on Stop");
         super.onStop();
-        //tts.stop();
+
+
     }
 
     static double GpsToMeter(double lat1, double lon1, double lat2, double lon2) {

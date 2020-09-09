@@ -168,14 +168,14 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                             toast("데이터 연결을 해주세요!");
                         }
                         */
-                        /*//디버깅용
+                        //디버깅용
                         Intent intent1 = new Intent(getApplicationContext(), NavigationActivity.class);
                         intent1.putExtra("destination", "공릉역");
                         intent1.putExtra("d_latitude",37.62558792);
                         intent1.putExtra("d_longitude",127.07298295);
-                        startActivity(intent1);*/
+                        startActivity(intent1);
 
-                        Log.d(TAG, "TTS State : "+isTtsFlag);
+                        /*Log.d(TAG, "TTS State : "+isTtsFlag);
                         if(isTtsFlag){
                             isTtsFlag=false;
                             Log.d(TAG, editText.getText().toString());
@@ -191,7 +191,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                         }else{
                             isTtsFlag=true;
                             inputVoice();
-                        }
+                        }*/
 
 
                     }
@@ -244,6 +244,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
 
                     public void onSwipeLeft(){
                         toast("swipe Left");
+                        disconnect();
 
                     }
 
