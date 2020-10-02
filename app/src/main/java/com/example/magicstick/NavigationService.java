@@ -9,17 +9,16 @@ import android.util.Log;
 
 import com.skt.Tmap.TMapGpsManager;
 
-import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.Locale;
 
+
 import static com.example.magicstick.NavigationActivity.GpsToMeter;
 
-public class NavigationService extends Service implements TMapGpsManager.onLocationChangedCallback, TextToSpeech.OnInitListener {
+public class NavigationService extends Service implements TMapGpsManager.onLocationChangedCallback, TextToSpeech.OnInitListener{
     //private static String appKey ="l7xx9ed3bc26b00f404b816bb3b6e2f44ec9";
     private TMapGpsManager tMapGps = null;
     private TextToSpeech tts;
-    public static int currentIndex;
     final String TAG = getClass().getName();
     public static LinkedList<String> coordinates = new LinkedList<String>();
     public static LinkedList<String> navigation = new LinkedList<String>();
@@ -27,7 +26,7 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
     static double prev_long;
     double curr_lat;
     double curr_long;
-    static boolean isStopped=false;
+    boolean wrong=false;
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -39,13 +38,7 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
 
     @Override
     public void onCreate() {
-        super.onCreate();
-    }
-
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d(TAG, "Background 실행~");
-        isStopped=false;
+        tts = new TextToSpeech(getApplicationContext(), this);
         //현위치 좌표계 받아오기
         tMapGps = new TMapGpsManager(this);
         tMapGps.setMinTime(1000);
@@ -54,13 +47,31 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
         //실내 - 디버깅용
         tMapGps.setProvider(tMapGps.NETWORK_PROVIDER);
         tMapGps.OpenGps();
+        super.onCreate();
+    }
 
-        //currentIndex=1;
-        tts = new TextToSpeech(this, this);
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.d(TAG, "Background 실행~");
+
         navigation = NavigationActivity.navigation;
         coordinates = NavigationActivity.coordinates;
-        prev_long = NavigationActivity.prev_long;
-        prev_lat=NavigationActivity.prev_lat;
+        prev_long = Double.parseDouble(coordinates.peek().split(",")[0]);
+        prev_lat=Double.parseDouble(coordinates.peek().split(",")[1]);
+
+        Thread thread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(true){
+                    while(tts.isSpeaking()){
+                        Log.d(TAG, "TTS is speaking ");
+                    }
+                    objectDetect();
+                }
+            }
+        });
+        thread.start();
+
         Log.d(TAG, "onStartCommand");
         return START_REDELIVER_INTENT;
     }
@@ -90,7 +101,7 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
        }else if(wrongRoute(latitude,longitude)){
             Log.d(TAG, "wrong route!");
             speech("경로를 벗어났습니다.");
-            //isStopped=true;
+            wrong =true;
             onDestroy();
         }else{
             speech("서비스 실행중");
@@ -100,14 +111,25 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
     }
     @Override
     public void onDestroy() {
-        super.onDestroy();
-        Log.d(TAG, "Stop the Service");
-        while(tts.isSpeaking())
-        tts.stop();
-        tts.shutdown();
-        Log.d(TAG, "TTS Destroyed");
-
+        Log.d(TAG, "Service on Destroy ");
+        if(wrong || navigation.isEmpty()){
+            super.onDestroy();
+            Log.d(TAG, "Stop the Service");
+            while(tts.isSpeaking())
+            tts.stop();
+            tts.shutdown();
+            Log.d(TAG, "TTS Destroyed");
+        }
     }
+
+    public void objectDetect(){
+        String object = SerialService.object;
+        if(object!=null){
+            speech(object + "가 전방에 있습니다.");
+            SerialService.object=null;
+        }
+    }
+
 
     boolean wrongRoute(double latitude,double longitude){
 
@@ -124,6 +146,9 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
         tts.setLanguage(Locale.KOREAN);
         tts.setPitch(1.0f);
         tts.setSpeechRate(1.0f);
+        while(tts.isSpeaking()){
+            Log.d(TAG, "TTS is speaking ");
+        }
         tts.speak(text, TextToSpeech.QUEUE_FLUSH,null);
     }
 
@@ -131,17 +156,19 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
     public void onInit(int status) {
         if (status == TextToSpeech.SUCCESS) {
             Log.d(TAG, "TTS 연결 성공");
+            speech(navigation.peek());
+            navigation.poll();
+            coordinates.poll();
             // 작업 성공
             int language = tts.setLanguage(Locale.KOREAN);  // 언어 설정
             if (language == TextToSpeech.LANG_MISSING_DATA
                     || language == TextToSpeech.LANG_NOT_SUPPORTED) {
                 // 언어 데이터가 없거나, 지원하지 않는경우
-                //toast("지원하지 않는 언어입니다.");
                 Log.d(TAG,"지원하지 않는 언어입니다.");
             }
         } else {
-            //toast("speech fail! ");
             Log.d(TAG,"Speech Fail");
         }
     }
+
 }

@@ -6,6 +6,7 @@ import android.os.Binder;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Looper;
+import android.util.Log;
 
 import androidx.annotation.Nullable;
 
@@ -36,6 +37,7 @@ public class SerialService extends Service implements SerialListener {
     private final Handler mainLooper;
     private final IBinder binder;
     private final Queue<QueueItem> queue1, queue2;
+    public static String object;
 
     private SerialSocket socket;
     private SerialListener listener;
@@ -184,10 +186,13 @@ public class SerialService extends Service implements SerialListener {
                             listener.onSerialRead(data);
                         } else {
                             queue1.add(new QueueItem(QueueType.Read, data, null));
+                            Log.d(getClass().getName(), "Result1 : " + new String(data));
                         }
                     });
                 } else {
+                    object = new String (data);
                     queue2.add(new QueueItem(QueueType.Read, data, null));
+                    Log.d(getClass().getName(), "Result2 : " + new String(data));
                 }
             }
         }

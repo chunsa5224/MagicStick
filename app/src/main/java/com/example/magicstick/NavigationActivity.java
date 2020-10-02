@@ -3,12 +3,11 @@ package com.example.magicstick;
 import android.content.Intent;
 import android.graphics.Color;
 import android.location.Location;
+import android.nfc.Tag;
 import android.os.Bundle;
-import android.speech.tts.TextToSpeech;
 import android.util.Log;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -23,10 +22,9 @@ import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
 import java.util.LinkedList;
-import java.util.Locale;
 
 
-public class NavigationActivity extends AppCompatActivity implements TMapGpsManager.onLocationChangedCallback, TextToSpeech.OnInitListener{
+public class NavigationActivity extends AppCompatActivity implements TMapGpsManager.onLocationChangedCallback{
 
 
     private static String appKey ="l7xx9ed3bc26b00f404b816bb3b6e2f44ec9";
@@ -35,14 +33,15 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
     private TMapView tMapView =null;
     private boolean m_bTrackingMode = true;
     final String TAG = getClass().getName();
-    private TextToSpeech tts;
+
+    //private TextToSpeech tts;
     TMapPoint startPoint;
     TMapPoint endPoint;
     boolean nullLocation=true;
-    static double prev_lat;
+    /*static double prev_lat;
     static double prev_long;
     static double curr_lat;
-    static double curr_long;
+    static double curr_long;*/
 
 
     public static LinkedList<String> coordinates = new LinkedList<String>();
@@ -75,13 +74,13 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
         tMapGps = new TMapGpsManager(this);
         tMapGps.setMinTime(1000);
         //실외 - 실제 코드에 사용
-        tMapGps.setProvider(tMapGps.GPS_PROVIDER);
+        //tMapGps.setProvider(tMapGps.GPS_PROVIDER);
         //실내 - 디버깅용
         tMapGps.setProvider(tMapGps.NETWORK_PROVIDER);
         tMapGps.OpenGps();
 
 
-        tts = new TextToSpeech(this, this);
+        //tts = new TextToSpeech(this, this);
 
 
         editText.setText("현위치");
@@ -105,6 +104,13 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
 
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        nullLocation=true;
+
+    }
+
+    @Override
     public void onLocationChange(Location location) {
         Log.d(TAG, "Location Changed ! index: "+ nullLocation );
         if(m_bTrackingMode){
@@ -116,9 +122,9 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
             Thread thread = new Thread(findPath);
             thread.start();
             nullLocation=false;
-
         }
 
+/*
         if(coordinates.peek()==null || navigation.peek()==null){
             Log.d(TAG, "Coordinates and Navigation are null");
 
@@ -147,13 +153,13 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
             }else{
                 Log.d(TAG," Go to " + curr_lat + " , " + curr_long);
             }
-
         }
+*/
 
 
     }
 
-    @Override
+    /*@Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
         if(hasFocus){
@@ -164,6 +170,7 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
 
             coordinates= NavigationService.coordinates;
             navigation= NavigationService.navigation;
+
 
 
         }else{
@@ -179,12 +186,21 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
             }
 
         }
-    }
+    }*/
 
     @Override
     protected void onStop() {
 
         super.onStop();
+
+
+    }
+
+    @Override
+    public void onBackPressed() {
+        Intent serviceIntent = new Intent(this, NavigationService.class);
+        stopService(serviceIntent);
+        super.onBackPressed();
 
 
     }
@@ -212,7 +228,7 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
         return (rad * 180 / Math.PI);
     }
 
-    boolean wrongRoute(double latitude,double longitude){
+    /*boolean wrongRoute(double latitude,double longitude){
 
         double a = GpsToMeter(latitude,longitude,prev_lat,prev_long);
         double b = GpsToMeter(latitude,longitude,curr_lat,curr_long);
@@ -222,8 +238,8 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
         Log.d("Wrong Route?", result+"");
         if(result>=40) return true;
         else return false;
-    }
-    @Override
+    }*/
+    /*@Override
     public void onInit(int status) {
         if (status == TextToSpeech.SUCCESS) {
             // 작업 성공
@@ -246,7 +262,7 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
         tts.setSpeechRate(1.0f);
         tts.speak(text, TextToSpeech.QUEUE_FLUSH,null);
 
-    }
+    }*/
 
     public class FindPath extends Thread{
         @Override
@@ -265,7 +281,7 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
             tMapData.findPathDataAllType(TMapData.TMapPathType.PEDESTRIAN_PATH, startPoint, endPoint, new TMapData.FindPathDataAllListenerCallback() {
                 @Override
                 public void onFindPathDataAll(Document document) {
-
+                    Log.d(TAG,"find path");
                     Element root = document.getDocumentElement();
 
                     NodeList nodeListPlacemark = root.getElementsByTagName("Placemark");
@@ -287,11 +303,13 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
                         }
                     }
                     Log.d(TAG, "First Navigation");
-                    prev_lat = Double.parseDouble(coordinates.peek().split(",")[1]);
+                    /*prev_lat = Double.parseDouble(coordinates.peek().split(",")[1]);
                     prev_long = Double.parseDouble(coordinates.peek().split(",")[0]);
                     coordinates.poll();
                     speech(navigation.peek());
-                    navigation.poll();
+                    navigation.poll();*/
+                    Intent serviceIntent = new Intent(NavigationActivity.this , NavigationService.class);
+                    startService(serviceIntent);
                 }
 
             });
@@ -306,11 +324,6 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
             });
 
         }
-    }
-
-
-    private void toast(String msg){
-        Toast.makeText(this,msg, Toast.LENGTH_LONG).show();
     }
 
 }

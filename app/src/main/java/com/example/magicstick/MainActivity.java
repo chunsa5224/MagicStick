@@ -10,6 +10,8 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -46,24 +48,18 @@ import java.util.Set;
 
 public class MainActivity extends AppCompatActivity implements ServiceConnection, SerialListener {
 
-    public static InputStream inputStream;
-    public static OutputStream outputStream;
+
     private SpeechRecognizer mRecognizer;
     private EditText editText;
     private TextToSpeech tts;
     private Runnable runnable;
     private BluetoothDevice bluetoothDevice;
     private Set<BluetoothDevice> bluetoothDeviceSet;
-    private BluetoothSocket bluetoothSocket;
-    private Thread workerThread = null; // 문자열 수신에 사용되는 쓰레드
-    private byte[] readBuffer; // 수신 된 문자열을 저장하기 위한 버퍼
-
-
-
-    private int readBufferPosition; // 버퍼 내 문자 저장 위치
     private int checknumber=0;
     private boolean ttsFlag = true;
     private boolean bluetoothFlag = false;
+    public static String object;
+
     private static final int REQUEST_ENABLE_BT = 10; // 블루투스 활성화 상태
     private final String TAG = getClass().getName();
     private static boolean isTtsFlag = false;    //TTS 활성화 상태
@@ -75,6 +71,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     private Double longitude;
     private String search;
     private TMapView tMapView =null;
+    private String destination;
 
     private SerialService service;
 
@@ -143,23 +140,16 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         // SWIPE
         View view = findViewById(R.id.background_view);
         view.setOnTouchListener(new OnSwipeTouchListener(this) {
+                    // Object Detection + Navigation
                     public void onSwipeTop() {
-                        /*toast("swipe top");
+
+                        toast("swipe top");
                         ConnectivityManager cm = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
                         NetworkInfo ni = cm.getActiveNetworkInfo();
                         // 네트워크 연결 확인
+/*
                         if(ni.isConnected() && ni!=null){
                             if(ni.getType()==ConnectivityManager.TYPE_MOBILE){
-                                //목적지 음성 입력 시작
-                                Intent intent1 = new Intent(getApplicationContext(), NavigationActivity.class);
-                                intent1.putExtra("destination", "공릉역");
-                                startActivity(intent1);
-
-                                try {
-                                    //inputVoice();
-                                } catch(SecurityException e) {
-                                    e.printStackTrace();
-                                }
 
                             }else if(ni.getType()==ConnectivityManager.TYPE_WIFI){
                                 toast("와이파이 연결을 해제하고 데이터로 연결해주세요");
@@ -167,34 +157,51 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                         }else{
                             toast("데이터 연결을 해주세요!");
                         }
-                        */
-                        //디버깅용
+*/
+                                //목적지 음성 입력 시작
+                                Log.d(TAG, "TTS State : "+isTtsFlag);
+                                if(isTtsFlag){      // 목적지 입력 후 재확인 process
+                                    isTtsFlag=false;
+                                    editText.setText(destination);
+                                    Log.d(TAG, editText.getText().toString());
+                                    //tts.stop();
+                                    //tts.shutdown();
+                                    mRecognizer.stopListening();
+                                    //mRecognizer.destroy();
+
+                                    //블루투스 연결 및 Object Detection 시작
+                                    bluetoothAdapter.enable();
+                                    bluetoothDeviceSet = bluetoothAdapter.getBondedDevices();
+                                    Log.d(TAG, "bluetooth : "+bluetoothDeviceSet);
+
+                                    // Navigation 시작
+                                    if(connect()){
+                                        Log.d(TAG, "connect");
+                                        Intent intent1 = new Intent(getApplicationContext(), NavigationActivity.class);
+                                        intent1.putExtra("destination", editText.getText().toString());
+                                        intent1.putExtra("d_latitude", latitude);
+                                        intent1.putExtra("d_longitude", longitude);
+                                        startActivity(intent1);
+
+                                    }
+                                }else{      // 목적지 입력 process
+
+                                    isTtsFlag=true;
+                                    inputVoice();
+                                }
+
+
+                        /*//디버깅용
                         Intent intent1 = new Intent(getApplicationContext(), NavigationActivity.class);
                         intent1.putExtra("destination", "공릉역");
                         intent1.putExtra("d_latitude",37.62558792);
                         intent1.putExtra("d_longitude",127.07298295);
-                        startActivity(intent1);
+                        startActivity(intent1);*/
 
-                        /*Log.d(TAG, "TTS State : "+isTtsFlag);
-                        if(isTtsFlag){
-                            isTtsFlag=false;
-                            Log.d(TAG, editText.getText().toString());
-                            tts.stop();
-                            //tts.shutdown();
-                            mRecognizer.stopListening();
-                            //mRecognizer.destroy();
-                            Intent intent1 = new Intent(getApplicationContext(), NavigationActivity.class);
-                            intent1.putExtra("destination", editText.getText().toString());
-                            intent1.putExtra("d_latitude", latitude);
-                            intent1.putExtra("d_longitude", longitude);
-                            startActivity(intent1);
-                        }else{
-                            isTtsFlag=true;
-                            inputVoice();
-                        }*/
 
 
                     }
+                    // Bluetooth Connection
                     public void onSwipeBottom() {
                         Log.d(TAG, "TTS State : "+isTtsFlag);
                         if(!isTtsFlag){
@@ -204,13 +211,6 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                             bluetoothAdapter.enable();
 
                             bluetoothDeviceSet = bluetoothAdapter.getBondedDevices();
-                            /*
-                             // 리스트를 만듬
-                             List<String> list = new ArrayList<>();
-                             for(BluetoothDevice bluetoothDevice : bluetoothDeviceSet) {
-                             list.add(bluetoothDevice.getName());
-                             }
-                             */
                             Log.d(TAG, "bluetooth : "+bluetoothDeviceSet);
 
                             connect();
@@ -221,7 +221,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                             inputVoice();
                         }
                     }
-
+                    // Object Detection
                     public void onSwipeRight() {
                         toast("swipe Right");
                         if (bluetoothDevice == null){
@@ -241,7 +241,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                             }
                         }
                     }
-
+                    // Disconnect
                     public void onSwipeLeft(){
                         toast("swipe Left");
                         disconnect();
@@ -291,7 +291,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
             this.unbindService(this);
         Log.d(TAG, "Main Activity is on Stop");
         super.onStop();
-        tts.stop();
+        //tts.stop();
         if(mRecognizer!=null) mRecognizer.destroy(); //mRecognizer.stopListening();//
 
 
@@ -329,7 +329,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         return super.onOptionsItemSelected(item);
     }
 
-    private void connect() {
+    private boolean connect() {
         try {
 
             String deviceAddress = null;
@@ -360,11 +360,12 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
 
 
             service.connect(socket);
+            return true;
 
         } catch (Exception e) {
 
             onSerialConnectError(e);
-
+            return false;
         }
     }
     @Override
@@ -385,6 +386,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     @Override
     public void onResume() {
         super.onResume();
+        editText.setText("");
         if(initialStart && service !=null) {
             initialStart = false;
             this.runOnUiThread(this::connect);
@@ -417,6 +419,9 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     }
 
     private void receive(byte[] data) {
+        object = new String(data);
+        Log.d(TAG, "hihi");
+        Log.d(TAG, "Detect ! "+object);
         toast(new String(data));
     }
 
@@ -439,7 +444,8 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                 @Override
                 public void onFindAllPOI(ArrayList<TMapPOIItem> poiItems) {
                     Log.d(TAG, "First poi item : "+poiItems.get(0).getPOIName() + ", Point : " + poiItems.get(0).getPOIPoint().toString());
-                    editText.setText(poiItems.get(0).getPOIName());
+                    //editText.setText(poiItems.get(0).getPOIName());
+                    destination = poiItems.get(0).getPOIName();
                     endPoint = poiItems.get(0).getPOIPoint();
                     latitude = endPoint.getLatitude();
                     longitude = endPoint.getLongitude();
@@ -454,7 +460,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                 e.printStackTrace();
             }
 
-            String location = editText.getText().toString();
+            String location = destination;
             while(location==null){}
             String speak = location + " 를 목적지로 정하시겠어요?";
 
@@ -591,7 +597,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     };
 
 
-    /**
+    /*
     // 프로그레스 다이얼로그 생성
     private class CheckTypesTask extends AsyncTask<Void, Void, Void> {
         ProgressDialog asyncDialog = new ProgressDialog(
@@ -749,7 +755,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     };
 
     private void toast(String msg){
-        Toast.makeText(this,msg, Toast.LENGTH_LONG).show();
+        Toast.makeText(this ,msg, Toast.LENGTH_LONG).show();
     }
 
 }
