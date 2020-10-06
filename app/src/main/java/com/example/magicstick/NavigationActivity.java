@@ -3,7 +3,6 @@ package com.example.magicstick;
 import android.content.Intent;
 import android.graphics.Color;
 import android.location.Location;
-import android.nfc.Tag;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.EditText;
@@ -33,15 +32,12 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
     private TMapView tMapView =null;
     private boolean m_bTrackingMode = true;
     final String TAG = getClass().getName();
+    private Intent serviceIntent;
+    public static boolean stopFlag=false;
 
-    //private TextToSpeech tts;
     TMapPoint startPoint;
     TMapPoint endPoint;
     boolean nullLocation=true;
-    /*static double prev_lat;
-    static double prev_long;
-    static double curr_lat;
-    static double curr_long;*/
 
 
     public static LinkedList<String> coordinates = new LinkedList<String>();
@@ -75,8 +71,8 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
         tMapGps.setMinTime(1000);
         //실외 - 실제 코드에 사용
         //tMapGps.setProvider(tMapGps.GPS_PROVIDER);
-        //실내 - 디버깅용
-        tMapGps.setProvider(tMapGps.NETWORK_PROVIDER);
+        /*//실내 - 디버깅용
+        tMapGps.setProvider(tMapGps.NETWORK_PROVIDER);*/
         tMapGps.OpenGps();
 
 
@@ -97,6 +93,8 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
         tMapView.setSightVisible(true);
         tMapView.setHttpsMode(true);
         tMapView.setLocationPoint(startPoint.getLongitude(),startPoint.getLatitude());
+
+        serviceIntent = new Intent(NavigationActivity.this , NavigationService.class);
 
 
         mapview.addView(tMapView);
@@ -124,69 +122,7 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
             nullLocation=false;
         }
 
-/*
-        if(coordinates.peek()==null || navigation.peek()==null){
-            Log.d(TAG, "Coordinates and Navigation are null");
-
-        }else {
-            String peek = coordinates.peek();
-            double longitude = location.getLongitude();
-            double latitude = location.getLatitude();
-            curr_long = Double.parseDouble(peek.split(",")[0]);
-            curr_lat = Double.parseDouble(peek.split(",")[1]);
-
-            Log.d(TAG, "Current GPS : " + longitude + ", " + latitude);
-            double dist = GpsToMeter(latitude,longitude,curr_lat,curr_long);
-            if(dist<=5){
-                Log.d(TAG, "Current navigation : " + navigation.peek());
-                speech(navigation.peek());
-                prev_lat = curr_lat;
-                prev_long = curr_long;
-                coordinates.poll();
-                navigation.poll();
-
-            }else if(wrongRoute(latitude,longitude)){
-                Log.d(TAG, "wrong route!");
-                Thread thread = new Thread(findPath);
-                thread.start();
-
-            }else{
-                Log.d(TAG," Go to " + curr_lat + " , " + curr_long);
-            }
-        }
-*/
-
-
     }
-
-    /*@Override
-    public void onWindowFocusChanged(boolean hasFocus) {
-        super.onWindowFocusChanged(hasFocus);
-        if(hasFocus){
-            Log.d(TAG, "Activity 가 화면 보여짐! ");
-            NavigationService.isStopped = true;
-            Intent serviceIntent = new Intent(this, NavigationService.class);
-            stopService(serviceIntent);
-
-            coordinates= NavigationService.coordinates;
-            navigation= NavigationService.navigation;
-
-
-
-        }else{
-            Log.d(TAG, "lose focus");
-            while(tts.isSpeaking())
-                tts.stop();
-            tts.shutdown();
-            Intent serviceIntent = new Intent(this, NavigationService.class);
-            startService(serviceIntent);
-            Log.d(TAG, "Navigation Activity is on Stop");
-            if(tts== null) {
-                Log.d(TAG, "TTS Destroyed");
-            }
-
-        }
-    }*/
 
     @Override
     protected void onStop() {
@@ -198,7 +134,8 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
 
     @Override
     public void onBackPressed() {
-        Intent serviceIntent = new Intent(this, NavigationService.class);
+        //Intent serviceIntent = new Intent(this, NavigationService.class);
+        stopFlag=true;
         stopService(serviceIntent);
         super.onBackPressed();
 
@@ -228,41 +165,6 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
         return (rad * 180 / Math.PI);
     }
 
-    /*boolean wrongRoute(double latitude,double longitude){
-
-        double a = GpsToMeter(latitude,longitude,prev_lat,prev_long);
-        double b = GpsToMeter(latitude,longitude,curr_lat,curr_long);
-        double c = GpsToMeter(prev_lat,prev_long,curr_lat, curr_long);
-        Log.d("", "meter : " + a +", "+ b + ", "+ c);
-        double result = Math.sqrt(a*a - ( Math.pow(a*a-b*b+c*c,2) / (4*c*c) ) );
-        Log.d("Wrong Route?", result+"");
-        if(result>=40) return true;
-        else return false;
-    }*/
-    /*@Override
-    public void onInit(int status) {
-        if (status == TextToSpeech.SUCCESS) {
-            // 작업 성공
-            int language = tts.setLanguage(Locale.KOREAN);  // 언어 설정
-            if (language == TextToSpeech.LANG_MISSING_DATA
-                    || language == TextToSpeech.LANG_NOT_SUPPORTED) {
-                // 언어 데이터가 없거나, 지원하지 않는경우
-                toast("지원하지 않는 언어입니다.");
-            }
-        } else {
-            toast("speech fail! ");
-        }
-
-    }
-
-    public void speech(String text){
-
-        tts.setLanguage(Locale.KOREAN);
-        tts.setPitch(1.0f);
-        tts.setSpeechRate(1.0f);
-        tts.speak(text, TextToSpeech.QUEUE_FLUSH,null);
-
-    }*/
 
     public class FindPath extends Thread{
         @Override
@@ -308,7 +210,7 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
                     coordinates.poll();
                     speech(navigation.peek());
                     navigation.poll();*/
-                    Intent serviceIntent = new Intent(NavigationActivity.this , NavigationService.class);
+                    //Intent serviceIntent = new Intent(NavigationActivity.this , NavigationService.class);
                     startService(serviceIntent);
                 }
 

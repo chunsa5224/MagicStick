@@ -58,7 +58,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     private int checknumber=0;
     private boolean ttsFlag = true;
     private boolean bluetoothFlag = false;
-    public static String object;
+    private boolean focusFlag = false;
 
     private static final int REQUEST_ENABLE_BT = 10; // 블루투스 활성화 상태
     private final String TAG = getClass().getName();
@@ -125,17 +125,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         }
 
 
-        // 음성출력
-        tts = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
-            @Override
-            public void onInit(int status) {
-                if(status!= TextToSpeech.ERROR){
-                    tts.setLanguage(Locale.KOREAN);
-                }
-            }
-        });
-        tts.setPitch(1.0f);
-        tts.setSpeechRate(1.0f);
+
 
         // SWIPE
         View view = findViewById(R.id.background_view);
@@ -147,17 +137,8 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                         ConnectivityManager cm = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
                         NetworkInfo ni = cm.getActiveNetworkInfo();
                         // 네트워크 연결 확인
-/*
                         if(ni.isConnected() && ni!=null){
                             if(ni.getType()==ConnectivityManager.TYPE_MOBILE){
-
-                            }else if(ni.getType()==ConnectivityManager.TYPE_WIFI){
-                                toast("와이파이 연결을 해제하고 데이터로 연결해주세요");
-                            }
-                        }else{
-                            toast("데이터 연결을 해주세요!");
-                        }
-*/
                                 //목적지 음성 입력 시작
                                 Log.d(TAG, "TTS State : "+isTtsFlag);
                                 if(isTtsFlag){      // 목적지 입력 후 재확인 process
@@ -190,6 +171,13 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                                     inputVoice();
                                 }
 
+                            }else if(ni.getType()==ConnectivityManager.TYPE_WIFI){
+                                toast("와이파이 연결을 해제하고 데이터로 연결해주세요");
+                            }
+                        }else{
+                            toast("데이터 연결을 해주세요!");
+                        }
+
 
                         /*//디버깅용
                         Intent intent1 = new Intent(getApplicationContext(), NavigationActivity.class);
@@ -201,7 +189,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
 
 
                     }
-                    // Bluetooth Connection
+                    // Bluetooth Connection and object detection
                     public void onSwipeBottom() {
                         Log.d(TAG, "TTS State : "+isTtsFlag);
                         if(!isTtsFlag){
@@ -212,7 +200,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
 
                             bluetoothDeviceSet = bluetoothAdapter.getBondedDevices();
                             Log.d(TAG, "bluetooth : "+bluetoothDeviceSet);
-
+                            focusFlag=true;
                             connect();
                             Log.d(TAG, "connect");
                             //CheckTypesTask task = new CheckTypesTask();
@@ -221,7 +209,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                             inputVoice();
                         }
                     }
-                    // Object Detection
+                    // Bluetooth setting
                     public void onSwipeRight() {
                         toast("swipe Right");
                         if (bluetoothDevice == null){
@@ -386,7 +374,19 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     @Override
     public void onResume() {
         super.onResume();
+        // 음성출력
+        tts = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
+            @Override
+            public void onInit(int status) {
+                if(status!= TextToSpeech.ERROR){
+                    tts.setLanguage(Locale.KOREAN);
+                }
+            }
+        });
+        tts.setPitch(1.0f);
+        tts.setSpeechRate(1.0f);
         editText.setText("");
+
         if(initialStart && service !=null) {
             initialStart = false;
             this.runOnUiThread(this::connect);
@@ -419,10 +419,12 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     }
 
     private void receive(byte[] data) {
-        object = new String(data);
-        Log.d(TAG, "hihi");
-        Log.d(TAG, "Detect ! "+object);
-        toast(new String(data));
+        String object = new String(data);
+        if(focusFlag){
+            Log.d(TAG, "Detect ! "+object);
+            tts.speak(object,TextToSpeech.QUEUE_FLUSH,null);
+            toast(object);
+        }
     }
 
 
@@ -431,6 +433,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         Log.d(TAG, "connection lost : "+e.getMessage());
         disconnect();
     }
+
 
     public class FindPOI extends Thread{
 

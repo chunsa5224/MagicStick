@@ -44,8 +44,8 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
         tMapGps.setMinTime(1000);
         //실외 - 실제 코드에 사용
         tMapGps.setProvider(tMapGps.GPS_PROVIDER);
-        //실내 - 디버깅용
-        tMapGps.setProvider(tMapGps.NETWORK_PROVIDER);
+        /*//실내 - 디버깅용
+        tMapGps.setProvider(tMapGps.NETWORK_PROVIDER);*/
         tMapGps.OpenGps();
         super.onCreate();
     }
@@ -64,7 +64,7 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
             public void run() {
                 while(true){
                     while(tts.isSpeaking()){
-                        Log.d(TAG, "TTS is speaking ");
+                        //Log.d(TAG, "TTS is speaking ");
                     }
                     objectDetect();
                 }
@@ -109,15 +109,15 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
 
         }
     }
+
     @Override
     public void onDestroy() {
         Log.d(TAG, "Service on Destroy ");
-        if(wrong || navigation.isEmpty()){
+        if(wrong || navigation.isEmpty() || NavigationActivity.stopFlag){
             super.onDestroy();
             Log.d(TAG, "Stop the Service");
-            while(tts.isSpeaking())
-            tts.stop();
-            tts.shutdown();
+            /*tts.stop();
+            tts.shutdown();*/
             Log.d(TAG, "TTS Destroyed");
         }
     }
@@ -147,7 +147,7 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
         tts.setPitch(1.0f);
         tts.setSpeechRate(1.0f);
         while(tts.isSpeaking()){
-            Log.d(TAG, "TTS is speaking ");
+            //Log.d(TAG, "TTS is speaking ");
         }
         tts.speak(text, TextToSpeech.QUEUE_FLUSH,null);
     }
