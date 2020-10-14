@@ -200,6 +200,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
 
                             bluetoothDeviceSet = bluetoothAdapter.getBondedDevices();
                             Log.d(TAG, "bluetooth : "+bluetoothDeviceSet);
+
                             focusFlag=true;
                             connect();
                             Log.d(TAG, "connect");
@@ -250,12 +251,11 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
             service.attach(this);
         }
         else {
-            this.startService(new Intent(getApplicationContext(), SerialService.class)); // prevents service destroy on unbind from recreated activity caused by orientation change
-            this.bindService(new Intent(getApplicationContext(), SerialService.class), this, Context.BIND_AUTO_CREATE);
+            /*this.startService(new Intent(getApplicationContext(), SerialService.class)); // prevents service destroy on unbind from recreated activity caused by orientation change
+            this.bindService(new Intent(getApplicationContext(), SerialService.class), this, Context.BIND_AUTO_CREATE);*/
         }
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         ttsFlag=sharedPreferences.getBoolean("voice_notification",false);
-        bluetoothFlag = sharedPreferences.getBoolean("bluetooth",false);
         // 음성출력
         tts = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
             @Override
@@ -274,9 +274,10 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
 
     @Override
     protected void onStop() {
-        if(service != null && !isChangingConfigurations())
+        if(service != null && isChangingConfigurations()){
             service.detach();
             this.unbindService(this);
+        }
         Log.d(TAG, "Main Activity is on Stop");
         super.onStop();
         //tts.stop();
@@ -318,6 +319,8 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     }
 
     private boolean connect() {
+        this.startService(new Intent(getApplicationContext(), SerialService.class)); // prevents service destroy on unbind from recreated activity caused by orientation change
+        this.bindService(new Intent(getApplicationContext(), SerialService.class), this, Context.BIND_AUTO_CREATE);
         try {
 
             String deviceAddress = null;

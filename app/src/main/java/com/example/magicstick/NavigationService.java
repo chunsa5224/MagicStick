@@ -2,8 +2,10 @@ package com.example.magicstick;
 
 import android.app.Service;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.location.Location;
 import android.os.IBinder;
+import android.preference.PreferenceManager;
 import android.speech.tts.TextToSpeech;
 import android.util.Log;
 
@@ -11,6 +13,7 @@ import com.skt.Tmap.TMapGpsManager;
 
 import java.util.LinkedList;
 import java.util.Locale;
+import java.util.Set;
 
 
 import static com.example.magicstick.NavigationActivity.GpsToMeter;
@@ -125,8 +128,12 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
     public void objectDetect(){
         String object = SerialService.object;
         if(object!=null){
-            speech(object + "가 전방에 있습니다.");
-            SerialService.object=null;
+            SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+            Set<String> customList = sharedPreferences.getStringSet("object_list2", null);
+            if(customList.contains(object)){
+                speech(object + "가 전방에 있습니다.");
+            }
+                SerialService.object=null;
         }
     }
 
