@@ -1,8 +1,32 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string-array name="array_object">
-        <item>자동차</item>
-        <item>방지턱</item>
-        <item>도로안정봉</item>
+        <item>신호등</item> <!--traffic_light_controller-->
+        <item>전봇대</item> <!--power_controller-->
+        <item>휠체어</item> <!--wheelchair-->
+        <item>트럭</item> <!--truck-->
+        <item>가로수</item> <!--tree_trunk-->
+        <item>신호 표지판</item> <!--traffic_sign-->
+        <item>신호등</item> <!--traffic_light-->
+        <item>테이블</item> <!--table-->
+        <item>유모차</item> <!--stroller-->
+        <item>표지판</item> <!--stop-->
+        <item>스쿠터</item> <!--scooter-->
+        <item>화단</item> <!--potted_plant-->
+        <item>봉</item> <!--pole-->
+        <item>사람</item> <!--person-->
+        <item>이동 신호기</item> <!--movable_signage-->
+        <item>오토바이</item> <!--motorcycle-->
+        <item>소화전</item> <!--fire_hydrant-->
+        <item>의자</item> <!--chair-->
+        <item>캐리어</item> <!--carrier-->
+        <item>자동차</item> <!--car-->
+        <item>버스</item> <!--bus-->
+        <item>도로안정봉</item> <!--bollard-->
+        <item>자전거</item> <!--bicycle-->
+        <item>벤치</item> <!--bench-->
+        <item>에스컬레이터</item> <!--escalator-->
+        <item>계단</item> <!--stair-->
+        <item>바리케이드</item> <!--barricade-->
     </string-array>
 </resources>

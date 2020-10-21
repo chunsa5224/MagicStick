@@ -155,6 +155,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                                     bluetoothDeviceSet = bluetoothAdapter.getBondedDevices();
                                     Log.d(TAG, "bluetooth : "+bluetoothDeviceSet);
 
+
                                     // Navigation 시작
                                     if(connect()){
                                         Log.d(TAG, "connect");
@@ -322,7 +323,6 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         this.startService(new Intent(getApplicationContext(), SerialService.class)); // prevents service destroy on unbind from recreated activity caused by orientation change
         this.bindService(new Intent(getApplicationContext(), SerialService.class), this, Context.BIND_AUTO_CREATE);
         try {
-
             String deviceAddress = null;
             for(BluetoothDevice devices : bluetoothDeviceSet) {
                 if(devices.getName().contains(device_name)) {
@@ -333,9 +333,6 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                     //args.putString("device",device.getAddress());
 
                     deviceAddress = devices.getAddress();
-
-
-
                 }
             }
             Log.d(TAG, "Device name "+bluetoothDevice);

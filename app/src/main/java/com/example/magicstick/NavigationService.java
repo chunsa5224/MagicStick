@@ -127,11 +127,14 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
 
     public void objectDetect(){
         String object = SerialService.object;
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        Set<String> objectList = sharedPreferences.getStringSet("object_list",null);
         if(object!=null){
             SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
             Set<String> customList = sharedPreferences.getStringSet("object_list2", null);
             if(customList.contains(object)){
                 speech(object + "가 전방에 있습니다.");
+                Log.d(TAG, object + "가 전방에 있습니다.");
             }
                 SerialService.object=null;
         }

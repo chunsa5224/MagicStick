@@ -3,7 +3,7 @@ package com.example.magicstick;
 import android.bluetooth.BluetoothAdapter;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.preference.ListPreference;
+import android.preference.MultiSelectListPreference;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
 import android.preference.PreferenceScreen;
@@ -14,7 +14,7 @@ import androidx.annotation.Nullable;
 public class SettingPreferenceFragment extends PreferenceFragment {
     SharedPreferences prefs;
 
-    ListPreference objectPreference;
+    MultiSelectListPreference objectPreference;
     PreferenceScreen objectScreen;
     BluetoothAdapter mBluetoothAdapter= BluetoothAdapter.getDefaultAdapter();
     @Override
@@ -22,13 +22,11 @@ public class SettingPreferenceFragment extends PreferenceFragment {
         super.onCreate(savedInstanceState);
 
         addPreferencesFromResource(R.xml.settings_preference);
-        objectPreference =(ListPreference)findPreference("object_list");
+        objectPreference =(MultiSelectListPreference)findPreference("object_list");
         objectScreen = (PreferenceScreen) findPreference("object_screen");
         prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
 
         prefs.registerOnSharedPreferenceChangeListener(prefListener);
-
-
 
     }
 
@@ -40,17 +38,10 @@ public class SettingPreferenceFragment extends PreferenceFragment {
                 if(prefs.getBoolean("bluetooth",true)){
                     Log.d(getClass().getName(), "Bluetooth on");
                     mBluetoothAdapter.enable();
-
-
-
                 }else{
                     Log.d(getClass().getName(), "Bluetooth off");
                     mBluetoothAdapter.disable();
                 }
-
-
-
-
             }
         }
     };
