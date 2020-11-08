@@ -1,28 +1,26 @@
 package com.example.magicstick;
 
-import android.bluetooth.BluetoothAdapter;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.MultiSelectListPreference;
 import android.preference.PreferenceFragment;
 import android.preference.PreferenceManager;
 import android.preference.PreferenceScreen;
-import android.util.Log;
 
 import androidx.annotation.Nullable;
 
 public class SettingPreferenceFragment extends PreferenceFragment {
-    SharedPreferences prefs;
 
+    SharedPreferences prefs;
     MultiSelectListPreference objectPreference;
     PreferenceScreen objectScreen;
-    BluetoothAdapter mBluetoothAdapter= BluetoothAdapter.getDefaultAdapter();
+
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState){
         super.onCreate(savedInstanceState);
 
         addPreferencesFromResource(R.xml.settings_preference);
-        objectPreference =(MultiSelectListPreference)findPreference("object_list");
+        objectPreference =(MultiSelectListPreference)findPreference("object_list1");
         objectScreen = (PreferenceScreen) findPreference("object_screen");
         prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
 
@@ -34,15 +32,7 @@ public class SettingPreferenceFragment extends PreferenceFragment {
     SharedPreferences.OnSharedPreferenceChangeListener prefListener = new SharedPreferences.OnSharedPreferenceChangeListener() {
         @Override
         public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
-            if(key.equals("bluetooth")){
-                if(prefs.getBoolean("bluetooth",true)){
-                    Log.d(getClass().getName(), "Bluetooth on");
-                    mBluetoothAdapter.enable();
-                }else{
-                    Log.d(getClass().getName(), "Bluetooth off");
-                    mBluetoothAdapter.disable();
-                }
-            }
+
         }
     };
 

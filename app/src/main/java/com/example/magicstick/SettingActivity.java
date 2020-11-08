@@ -12,4 +12,5 @@ public class SettingActivity extends AppCompatActivity {
 
         getSupportActionBar().setTitle("설정");
     }
+
 }

@@ -48,42 +48,38 @@ import java.util.Set;
 
 public class MainActivity extends AppCompatActivity implements ServiceConnection, SerialListener {
 
-
-    private SpeechRecognizer mRecognizer;
+    private final String TAG = getClass().getName();
     private EditText editText;
     private TextToSpeech tts;
+    private SpeechRecognizer mRecognizer;
     private Runnable runnable;
+    private boolean ttsFlag = true;
+    private boolean focusFlag = false;
+    private boolean customizingFlag = false;
+    Intent intent;
+
+    //Bluetooth
+    private int checknumber=0;
     private BluetoothDevice bluetoothDevice;
     private Set<BluetoothDevice> bluetoothDeviceSet;
-    private int checknumber=0;
-    private boolean ttsFlag = true;
-    private boolean bluetoothFlag = false;
-    private boolean focusFlag = false;
-
     private static final int REQUEST_ENABLE_BT = 10; // 블루투스 활성화 상태
-    private final String TAG = getClass().getName();
     private static boolean isTtsFlag = false;    //TTS 활성화 상태
     private String device_name = "rasp";
-    private static String appKey ="l7xx9ed3bc26b00f404b816bb3b6e2f44ec9";
-    private final TMapData tMapData = new TMapData();
-    TMapPoint endPoint;
-    private Double latitude;
-    private Double longitude;
-    private String search;
-    private TMapView tMapView =null;
-    private String destination;
-
     private SerialService service;
-
     private enum Connected { False, Pending, True }
     private boolean initialStart = true;
     private Connected connected = Connected.False;
-    // 블루투스 사용 객체
-    private BluetoothAdapter bluetoothAdapter;
-    Intent intent;
+    private BluetoothAdapter bluetoothAdapter; //블루투스 사용 객체
 
-
-
+    //T map
+    private static String appKey ="l7xx9ed3bc26b00f404b816bb3b6e2f44ec9";
+    private final TMapData tMapData = new TMapData();
+    private TMapView tMapView =null;
+    public TMapPoint endPoint;
+    private Double latitude;
+    private Double longitude;
+    private String search;
+    private String destination;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -94,38 +90,24 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         tMapView.setSKTMapApiKey(appKey);
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
-        //권한 요청
-        if(Build.VERSION.SDK_INT>=23){
-            if((ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)!= PackageManager.PERMISSION_GRANTED)
-                    || (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED)
-                    || (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_NETWORK_STATE)!=PackageManager.PERMISSION_GRANTED)
-                    || (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_COARSE_LOCATION)!=PackageManager.PERMISSION_GRANTED)){
-                ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.RECORD_AUDIO, Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_NETWORK_STATE},1);
-            }else {
-                Log.d(TAG, "Permissions are granted");
-            }
-        }else{
-            Toast.makeText(this, "이 앱이 마이크와 위치에 접근하도록 허용합니다.",Toast.LENGTH_SHORT);
-            Log.d(TAG, "Permissions are granted");
+        setInitialStart();
+
+        if(!customizingFlag){
+            Intent customIntent = new Intent(getApplicationContext(),CustomizeObjectlist.class);
+            startActivity(customIntent);
+            customizingFlag=true;
+        }
+        String [] objectArray = getResources().getStringArray(R.array.array_object);
+        for(String s : objectArray){
+            Log.d(TAG, s);
         }
 
         if(bluetoothAdapter==null){
             Toast.makeText(getApplicationContext(), "단말기가 블루투스를 지원하지 않습니다.", Toast.LENGTH_LONG).show();
-            //finish(); // 앱 종료
         }else{
-            if(bluetoothAdapter.isEnabled()){
-                Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                startActivityForResult(intent, REQUEST_ENABLE_BT);
-            }
-            else{
-                //블루투스 활성화
-                Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
-                startActivityForResult(intent, REQUEST_ENABLE_BT);
-            }
+            Intent intent = new Intent(BluetoothAdapter.ACTION_REQUEST_ENABLE);
+            startActivityForResult(intent, REQUEST_ENABLE_BT);
         }
-
-
-
 
         // SWIPE
         View view = findViewById(R.id.background_view);
@@ -141,20 +123,17 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                             if(ni.getType()==ConnectivityManager.TYPE_MOBILE){
                                 //목적지 음성 입력 시작
                                 Log.d(TAG, "TTS State : "+isTtsFlag);
-                                if(isTtsFlag){      // 목적지 입력 후 재확인 process
+                                // 목적지 입력 후 재확인 process
+                                if(isTtsFlag){
                                     isTtsFlag=false;
                                     editText.setText(destination);
                                     Log.d(TAG, editText.getText().toString());
-                                    //tts.stop();
-                                    //tts.shutdown();
                                     mRecognizer.stopListening();
-                                    //mRecognizer.destroy();
 
                                     //블루투스 연결 및 Object Detection 시작
                                     bluetoothAdapter.enable();
                                     bluetoothDeviceSet = bluetoothAdapter.getBondedDevices();
                                     Log.d(TAG, "bluetooth : "+bluetoothDeviceSet);
-
 
                                     // Navigation 시작
                                     if(connect()){
@@ -164,10 +143,9 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                                         intent1.putExtra("d_latitude", latitude);
                                         intent1.putExtra("d_longitude", longitude);
                                         startActivity(intent1);
-
                                     }
-                                }else{      // 목적지 입력 process
-
+                                }else{
+                                    // 목적지 입력 process
                                     isTtsFlag=true;
                                     inputVoice();
                                 }
@@ -179,15 +157,12 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                             toast("데이터 연결을 해주세요!");
                         }
 
-
-                        /*//디버깅용
+                        /* 디버깅용
                         Intent intent1 = new Intent(getApplicationContext(), NavigationActivity.class);
                         intent1.putExtra("destination", "공릉역");
                         intent1.putExtra("d_latitude",37.62558792);
                         intent1.putExtra("d_longitude",127.07298295);
                         startActivity(intent1);*/
-
-
 
                     }
                     // Bluetooth Connection and object detection
@@ -196,7 +171,6 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                         if(!isTtsFlag){
                             toast("swipe bottom");
                             //블루투스 On
-
                             bluetoothAdapter.enable();
 
                             bluetoothDeviceSet = bluetoothAdapter.getBondedDevices();
@@ -235,28 +209,44 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                     public void onSwipeLeft(){
                         toast("swipe Left");
                         disconnect();
-
                     }
-
                 }
-
         );
+    }
 
+    public void setInitialStart(){
+        //Permission Request
+        if(Build.VERSION.SDK_INT>=23){
+            if((ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)!= PackageManager.PERMISSION_GRANTED)
+                    || (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED)
+                    || (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_NETWORK_STATE)!=PackageManager.PERMISSION_GRANTED)
+                    || (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_COARSE_LOCATION)!=PackageManager.PERMISSION_GRANTED)){
+                ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.RECORD_AUDIO, Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_NETWORK_STATE},1);
+            }else {
+                Log.d(TAG, "Permissions are granted");
+            }
+        }else{
+            Toast.makeText(this, "이 앱이 마이크와 위치에 접근하도록 허용합니다.",Toast.LENGTH_SHORT);
+            Log.d(TAG, "Permissions are granted");
+        }
     }
 
     @Override
     protected void onStart() {
         Log.d(TAG, "Main Activity is on Start");
         super.onStart();
+
         if(service != null && !initialStart) {
             service.attach(this);
         }
-        else {
-            /*this.startService(new Intent(getApplicationContext(), SerialService.class)); // prevents service destroy on unbind from recreated activity caused by orientation change
-            this.bindService(new Intent(getApplicationContext(), SerialService.class), this, Context.BIND_AUTO_CREATE);*/
-        }
+
+        /*
+        //음성출력 설정값
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         ttsFlag=sharedPreferences.getBoolean("voice_notification",false);
+        Log.d(TAG, "ttsFlag is " + ttsFlag);
+         */
+
         // 음성출력
         tts = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
             @Override
@@ -268,107 +258,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         });
         tts.setPitch(1.0f);
         tts.setSpeechRate(1.0f);
-        Log.d(TAG, "ttsFlag is " + ttsFlag);
 
-    }
-
-
-    @Override
-    protected void onStop() {
-        if(service != null && isChangingConfigurations()){
-            service.detach();
-            this.unbindService(this);
-        }
-        Log.d(TAG, "Main Activity is on Stop");
-        super.onStop();
-        //tts.stop();
-        if(mRecognizer!=null) mRecognizer.destroy(); //mRecognizer.stopListening();//
-
-
-
-    }
-
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.menu, menu) ;
-        return true ;
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grandResults){
-        super.onRequestPermissionsResult(requestCode,permissions, grandResults);
-        if(Build.VERSION.SDK_INT>=23){
-            if(grandResults[0]==PackageManager.PERMISSION_GRANTED){
-                Log.v(TAG, "Permission: " + permissions[0] + " was " + grandResults[0]);
-            }
-        }
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-
-        int id = item.getItemId();
-
-
-        if (id == R.id.setting_btn) {
-            Log.d(this.getClass().getName(), "onOptionsItemSelected 실행");
-            Intent intentSubActivity = new Intent(this, SettingActivity.class);
-            startActivity(intentSubActivity);
-            return true;
-        }
-        return super.onOptionsItemSelected(item);
-    }
-
-    private boolean connect() {
-        this.startService(new Intent(getApplicationContext(), SerialService.class)); // prevents service destroy on unbind from recreated activity caused by orientation change
-        this.bindService(new Intent(getApplicationContext(), SerialService.class), this, Context.BIND_AUTO_CREATE);
-        try {
-            String deviceAddress = null;
-            for(BluetoothDevice devices : bluetoothDeviceSet) {
-                if(devices.getName().contains(device_name)) {
-                    bluetoothDevice = devices;
-                    checknumber=1;
-                    //모듈화시 사용 , 변수 저장하여 넘김
-                    //Bundle args = new Bundle();
-                    //args.putString("device",device.getAddress());
-
-                    deviceAddress = devices.getAddress();
-                }
-            }
-            Log.d(TAG, "Device name "+bluetoothDevice);
-            BluetoothDevice device = bluetoothAdapter.getRemoteDevice(deviceAddress);
-
-
-            Log.d(TAG, "Device2 : "+device);
-
-            connected = Connected.Pending;
-            SerialSocket socket = new SerialSocket(this.getApplicationContext(), device);
-            Log.d(TAG, "get socket : "+socket.getName());
-            toast(socket.getName());
-
-
-            service.connect(socket);
-            return true;
-
-        } catch (Exception e) {
-
-            onSerialConnectError(e);
-            return false;
-        }
-    }
-    @Override
-    public void onServiceConnected(ComponentName name, IBinder binder) {
-        service = ((SerialService.SerialBinder) binder).getService();
-        service.attach(this);
-        Log.d(TAG, "Onserviceconnected");
-        this.runOnUiThread(this::connect);
-
-    }
-
-    @Override
-    public void onServiceDisconnected(ComponentName componentName) {
-
-        service=null;
     }
 
     @Override
@@ -393,45 +283,45 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         }
     }
 
-
-
-    private void disconnect() {
-        connected = Connected.False;
-        Log.d(TAG, "disconnected????");
-        service.disconnect();
-    }
-    //serial Listener
     @Override
-    public void onSerialConnect() {
-        Log.d(TAG, "Connected");
-        connected = Connected.True;
+    protected void onStop() {
+        if(service != null && isChangingConfigurations()){
+            service.detach();
+            this.unbindService(this);
+        }
+        Log.d(TAG, "Main Activity is on Stop");
+        super.onStop();
+        if(mRecognizer!=null) mRecognizer.destroy(); //mRecognizer.stopListening();//
     }
 
     @Override
-    public void onSerialConnectError(Exception e) {
-        Log.d(TAG, "connection Failed : "+e.getMessage());
-        disconnect();
-    }
-
-    @Override
-    public void onSerialRead(byte[] data) {
-        receive(data);
-    }
-
-    private void receive(byte[] data) {
-        String object = new String(data);
-        if(focusFlag){
-            Log.d(TAG, "Detect ! "+object);
-            tts.speak(object,TextToSpeech.QUEUE_FLUSH,null);
-            toast(object);
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grandResults){
+        super.onRequestPermissionsResult(requestCode,permissions, grandResults);
+        if(Build.VERSION.SDK_INT>=23){
+            if(grandResults[0]==PackageManager.PERMISSION_GRANTED){
+                Log.v(TAG, "Permission: " + permissions[0] + " was " + grandResults[0]);
+            }
         }
     }
 
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.menu, menu) ;
+        return true ;
+    }
 
     @Override
-    public void onSerialIoError(Exception e) {
-        Log.d(TAG, "connection lost : "+e.getMessage());
-        disconnect();
+    public boolean onOptionsItemSelected(MenuItem item) {
+
+        int id = item.getItemId();
+
+        if (id == R.id.setting_btn) {
+            Log.d(this.getClass().getName(), "onOptionsItemSelected 실행");
+            Intent intentSubActivity = new Intent(this, SettingActivity.class);
+            startActivity(intentSubActivity);
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
 
@@ -477,11 +367,10 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
             super.interrupt();
         }
     }
-    //음성인식
+    // STT
     public void inputVoice() {
         //음성인식
         intent = new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
-        //intent.putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS,5000);
         intent.putExtra(RecognizerIntent.EXTRA_CALLING_PACKAGE, getApplicationContext().getPackageName());
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE, "ko-KR");
         mRecognizer = SpeechRecognizer.createSpeechRecognizer(getApplicationContext());
@@ -495,8 +384,97 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         };
     }
 
-    private RecognitionListener listener = new RecognitionListener() {
+    //Bluetooth connection
+    private boolean connect() {
+        this.startService(new Intent(getApplicationContext(), SerialService.class)); // prevents service destroy on unbind from recreated activity caused by orientation change
+        this.bindService(new Intent(getApplicationContext(), SerialService.class), this, Context.BIND_AUTO_CREATE);
+        try {
+            String deviceAddress = null;
+            for(BluetoothDevice devices : bluetoothDeviceSet) {
+                if(devices.getName().contains(device_name)) {
+                    bluetoothDevice = devices;
+                    checknumber=1;
+                    //모듈화시 사용 , 변수 저장하여 넘김
+                    //Bundle args = new Bundle();
+                    //args.putString("device",device.getAddress());
 
+                    deviceAddress = devices.getAddress();
+                }
+            }
+            Log.d(TAG, "Device name "+bluetoothDevice);
+            BluetoothDevice device = bluetoothAdapter.getRemoteDevice(deviceAddress);
+
+
+            Log.d(TAG, "Device2 : "+device);
+
+            connected = Connected.Pending;
+            SerialSocket socket = new SerialSocket(this.getApplicationContext(), device);
+            Log.d(TAG, "get socket : "+socket.getName());
+            toast(socket.getName());
+
+
+            service.connect(socket);
+            return true;
+
+        } catch (Exception e) {
+            onSerialConnectError(e);
+            return false;
+        }
+    }
+
+    @Override
+    public void onServiceConnected(ComponentName name, IBinder binder) {
+        service = ((SerialService.SerialBinder) binder).getService();
+        service.attach(this);
+        Log.d(TAG, "Service connected");
+        this.runOnUiThread(this::connect);
+
+    }
+
+    @Override
+    public void onServiceDisconnected(ComponentName componentName) {
+        service=null;
+    }
+
+    private void disconnect() {
+        connected = Connected.False;
+        Log.d(TAG, "Bluetooth disconnected");
+        service.disconnect();
+    }
+    //serial Listener
+    @Override
+    public void onSerialConnect() {
+        Log.d(TAG, "Connected");
+        connected = Connected.True;
+    }
+
+    @Override
+    public void onSerialConnectError(Exception e) {
+        Log.d(TAG, "connection Failed : "+e.getMessage());
+        disconnect();
+    }
+
+    @Override
+    public void onSerialRead(byte[] data) {
+        receive(data);
+    }
+
+    private void receive(byte[] data) {
+        String object = new String(data);
+        if(focusFlag){
+            Log.d(TAG, "Detect ! "+object);
+            tts.speak(object,TextToSpeech.QUEUE_FLUSH,null);
+            toast(object);
+        }
+    }
+
+    @Override
+    public void onSerialIoError(Exception e) {
+        Log.d(TAG, "connection lost : "+e.getMessage());
+        disconnect();
+    }
+
+    private RecognitionListener listener = new RecognitionListener() {
 
         @Override
         public void onReadyForSpeech(Bundle params){
@@ -599,157 +577,6 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
 
     };
 
-
-    /*
-    // 프로그레스 다이얼로그 생성
-    private class CheckTypesTask extends AsyncTask<Void, Void, Void> {
-        ProgressDialog asyncDialog = new ProgressDialog(
-                MainActivity.this);
-        private String device_name = "raspberrypi";
-        @Override
-        protected void onPreExecute() {
-            asyncDialog.setCancelable(false);
-            asyncDialog.setProgressStyle(ProgressDialog.STYLE_SPINNER);
-            asyncDialog.setMessage(device_name + "에 연결중입니다.");
-
-            // show dialog
-            asyncDialog.show();
-            super.onPreExecute();
-        }
-
-        // 백그라운드에서 실행
-        @Override
-        protected Void doInBackground(Void... arg0) {
-
-            bluetoothDeviceSet = bluetoothAdapter.getBondedDevices();
-            /*
-            // 리스트를 만듬
-            List<String> list = new ArrayList<>();
-            for(BluetoothDevice bluetoothDevice : bluetoothDeviceSet) {
-                list.add(bluetoothDevice.getName());
-            }
-            /
-            connect();
-            return null;
-        }
-
-        // 백그라운드가 모두 끝난 후 실행
-        @Override
-        protected void onPostExecute(Void result) {
-            asyncDialog.dismiss();
-            super.onPostExecute(result);
-        }
-    }
-    */
-
-
-
-    /*
-    // 클릭 된 디바이스와 연결하는 함수
-    public void connectDevice(String deviceName) {
-        // 블루투스 연결 할 디바이스를 찾음
-
-        for(BluetoothDevice device : bluetoothDeviceSet) {
-            if(device.getName().contains(deviceName)) {
-                bluetoothDevice = device;
-                checknumber=1;
-                //모듈화시 사용 , 변수 저장하여 넘김
-                //Bundle args = new Bundle();
-                //args.putString("device",device.getAddress());
-
-                String deviceAddress = device.getAddress();
-                service.attach((SerialListener) this);
-                break;
-            }
-        }
-
-        // UUID 생성
-        UUID uuid = java.util.UUID.fromString("00000003-0000-1000-8000-00805F9B34FB");
-
-        try {
-            // 블루투스 소켓 생성
-            bluetoothSocket = bluetoothDevice.createRfcommSocketToServiceRecord(uuid);
-            bluetoothSocket.connect();
-            // 데이터 받기 위해 인풋스트림 생성
-            outputStream = bluetoothSocket.getOutputStream();
-            inputStream = bluetoothSocket.getInputStream();
-
-            // 블루투스 수신 시작 호출
-            //Intent intent = new Intent(bluetooth_connect.this, bluetooth_talk.class);
-            //startActivity(intent);
-        } catch (Exception e) {
-            // 쓰레드에서 UI처리를 위한 핸들러
-            Message msg = handler.obtainMessage();
-            handler.sendMessage(msg);
-            Intent intent = new Intent(Settings.ACTION_BLUETOOTH_SETTINGS);
-            startActivity(intent);
-        }
-
-    }
-
-    public void receiveData() {
-        final Handler hand = new Handler();
-        // 데이터를 수신하기 위한 버퍼를 생성
-        readBufferPosition = 0;
-        readBuffer = new byte[1024];
-        // 데이터를 수신하기 위한 쓰레드 생성
-        workerThread = new Thread(new Runnable() {
-
-            @Override
-
-            public void run() {
-                while(Thread.currentThread().isInterrupted()) {
-                    try {
-                        // 데이터를 수신했는지 확인합니다.
-                        int byteAvailable = inputStream.available();
-                        // 데이터가 수신 된 경우
-                        if(byteAvailable > 0) {
-                            // 입력 스트림에서 바이트 단위로 읽어 옵니다.
-                            byte[] bytes = new byte[byteAvailable];
-                            inputStream.read(bytes);
-                            // 입력 스트림 바이트를 한 바이트씩 읽어 옵니다.
-                            for(int i = 0; i < byteAvailable; i++) {
-                                byte tempByte = bytes[i];
-                                // 개행문자를 기준으로 받음(한줄)
-                                if(tempByte == '\n') {
-                                    // readBuffer 배열을 encodedBytes로 복사
-                                    byte[] encodedBytes = new byte[readBufferPosition];
-                                    System.arraycopy(readBuffer, 0, encodedBytes, 0, encodedBytes.length);
-                                    // 인코딩 된 바이트 배열을 문자열로 변환
-                                    final String text = new String(encodedBytes, "US-ASCII");
-                                    readBufferPosition = 0;
-                                    hand.post(new Runnable() {
-
-                                        @Override
-
-                                        public void run() {
-                                            Toast.makeText(getApplicationContext(), text,Toast.LENGTH_LONG).show();
-                                        }
-
-                                    });
-                                } // 개행 문자가 아닐 경우
-                                else {
-                                    readBuffer[readBufferPosition++] = tempByte;
-                                }
-                            }
-                        }
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    try {
-                        // 10초마다 받아옴
-                        Thread.sleep(10000);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
-                }
-            }
-
-        });
-        workerThread.start();
-    }
-
-     */
     // 핸들러 선언
     final Handler handler = new Handler() {
         public void handleMessage(Message msg) {

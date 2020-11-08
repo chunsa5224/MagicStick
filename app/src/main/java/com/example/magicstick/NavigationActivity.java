@@ -31,15 +31,14 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
     private TMapGpsManager tMapGps = null;
     private TMapView tMapView =null;
     private boolean m_bTrackingMode = true;
-    final String TAG = getClass().getName();
-    private Intent serviceIntent;
     public static boolean stopFlag=false;
 
     TMapPoint startPoint;
     TMapPoint endPoint;
     boolean nullLocation=true;
 
-
+    final String TAG = getClass().getName();
+    private Intent serviceIntent;
     public static LinkedList<String> coordinates = new LinkedList<String>();
     public static LinkedList<String> navigation = new LinkedList<String>();
 
@@ -62,50 +61,21 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
         String destination =intent.getExtras().getString("destination");
         double d_latitude = intent.getExtras().getDouble("d_latitude");
         double d_longitude = intent.getExtras().getDouble("d_longitude");
+
         endPoint = new TMapPoint(d_latitude,d_longitude);
         editText2.setText(destination);
 
-
-        //현위치 좌표계 받아오기
-        tMapGps = new TMapGpsManager(this);
-        tMapGps.setMinTime(1000);
-        //실외 - 실제 코드에 사용
-        //tMapGps.setProvider(tMapGps.GPS_PROVIDER);
-        /*//실내 - 디버깅용
-        tMapGps.setProvider(tMapGps.NETWORK_PROVIDER);*/
-        tMapGps.OpenGps();
-
-
-        //tts = new TextToSpeech(this, this);
-
-
-        editText.setText("현위치");
-
-        startPoint = tMapGps.getLocation();
-
-        // T MAP setting
-        tMapView.setCompassMode(true);
-        tMapView.setIconVisibility(true);
-        tMapView.setZoomLevel(15);
-        tMapView.setMapType(TMapView.MAPTYPE_STANDARD);  //일반지도
-        tMapView.setLanguage(TMapView.LANGUAGE_KOREAN);
-        tMapView.setTrackingMode(true);
-        tMapView.setSightVisible(true);
-        tMapView.setHttpsMode(true);
-        tMapView.setLocationPoint(startPoint.getLongitude(),startPoint.getLatitude());
+        locationSetting();
 
         serviceIntent = new Intent(NavigationActivity.this , NavigationService.class);
 
-
         mapview.addView(tMapView);
     }
-
 
     @Override
     protected void onResume() {
         super.onResume();
         nullLocation=true;
-
     }
 
     @Override
@@ -121,24 +91,47 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
             thread.start();
             nullLocation=false;
         }
-
     }
 
     @Override
     protected void onStop() {
-
         super.onStop();
-
-
     }
 
     @Override
     public void onBackPressed() {
-        //Intent serviceIntent = new Intent(this, NavigationService.class);
         stopFlag=true;
         stopService(serviceIntent);
+        tMapGps.CloseGps();
         super.onBackPressed();
+    }
 
+    public void locationSetting(){
+        //현위치 좌표계 받아오기
+        tMapGps = new TMapGpsManager(this);
+        tMapGps.setMinTime(1000);
+        tMapGps.setMinDistance(1);
+
+        tMapGps.setProvider(tMapGps.GPS_PROVIDER);
+
+        if(tMapGps.getLocation()==new TMapPoint(0,0)){
+            tMapGps.setProvider(tMapGps.NETWORK_PROVIDER);
+        }
+
+        tMapGps.OpenGps();
+
+        startPoint = tMapGps.getLocation();
+
+        // T MAP setting
+        tMapView.setCompassMode(true);
+        tMapView.setIconVisibility(true);
+        tMapView.setZoomLevel(15);
+        tMapView.setMapType(TMapView.MAPTYPE_STANDARD);  //일반지도
+        tMapView.setLanguage(TMapView.LANGUAGE_KOREAN);
+        tMapView.setTrackingMode(true);
+        tMapView.setSightVisible(true);
+        tMapView.setHttpsMode(true);
+        tMapView.setLocationPoint(startPoint.getLongitude(),startPoint.getLatitude());
 
     }
 
@@ -205,12 +198,6 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
                         }
                     }
                     Log.d(TAG, "First Navigation");
-                    /*prev_lat = Double.parseDouble(coordinates.peek().split(",")[1]);
-                    prev_long = Double.parseDouble(coordinates.peek().split(",")[0]);
-                    coordinates.poll();
-                    speech(navigation.peek());
-                    navigation.poll();*/
-                    //Intent serviceIntent = new Intent(NavigationActivity.this , NavigationService.class);
                     startService(serviceIntent);
                 }
 

@@ -10,6 +10,7 @@ import android.speech.tts.TextToSpeech;
 import android.util.Log;
 
 import com.skt.Tmap.TMapGpsManager;
+import com.skt.Tmap.TMapPoint;
 
 import java.util.LinkedList;
 import java.util.Locale;
@@ -41,14 +42,16 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
 
     @Override
     public void onCreate() {
+
         tts = new TextToSpeech(getApplicationContext(), this);
-        //현위치 좌표계 받아오기
+
         tMapGps = new TMapGpsManager(this);
         tMapGps.setMinTime(1000);
-        //실외 - 실제 코드에 사용
+        tMapGps.setMinDistance(2);
         tMapGps.setProvider(tMapGps.GPS_PROVIDER);
-        /*//실내 - 디버깅용
-        tMapGps.setProvider(tMapGps.NETWORK_PROVIDER);*/
+        if(tMapGps.getLocation()==new TMapPoint(0,0)){
+            tMapGps.setProvider(tMapGps.NETWORK_PROVIDER);
+        }
         tMapGps.OpenGps();
         super.onCreate();
     }
@@ -119,8 +122,8 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
         if(wrong || navigation.isEmpty() || NavigationActivity.stopFlag){
             super.onDestroy();
             Log.d(TAG, "Stop the Service");
-            /*tts.stop();
-            tts.shutdown();*/
+            tts.stop();
+            tts.shutdown();
             Log.d(TAG, "TTS Destroyed");
         }
     }
@@ -140,7 +143,6 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
         }
     }
 
-
     boolean wrongRoute(double latitude,double longitude){
 
         double a = GpsToMeter(latitude,longitude,prev_lat,prev_long);
@@ -152,6 +154,7 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
         if(result>=40) return true;
         else return false;
     }
+
     public void speech(String text){
         tts.setLanguage(Locale.KOREAN);
         tts.setPitch(1.0f);

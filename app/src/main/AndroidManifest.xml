@@ -19,19 +19,20 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/AppTheme">
+
         <service
             android:name=".NavigationService"
             android:enabled="true"
             android:exported="true">
             <intent-filter>
-                <action android:name="android.intent.action.startService"/>
-                <action android:name="android.intent.action.stopService"/>
+                <action android:name="android.intent.action.startService" />
+                <action android:name="android.intent.action.stopService" />
             </intent-filter>
         </service>
         <service
             android:name=".SerialService"
             android:enabled="true"
-            android:exported="true"></service>
+            android:exported="true" />
 
         <activity android:name=".NavigationActivity" />
         <activity android:name=".MainActivity">
@@ -42,9 +43,12 @@
             </intent-filter>
         </activity>
         <activity android:name=".SettingActivity" />
-        <service android:name=".SerialService"
+        <activity android:name=".CustomizeObjectlist"/>
+
+        <service
+            android:name=".SerialService"
             android:enabled="true"
-            android:exported="true"></service>
+            android:exported="true" />
     </application>
 
 </manifest>
