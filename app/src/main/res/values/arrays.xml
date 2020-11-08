@@ -1,30 +1,35 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string-array name="array_object">
-        <item>신호등</item> <!--traffic_light_controller-->
-        <item>전봇대</item> <!--power_controller-->
-        <item>휠체어</item> <!--wheelchair-->
-        <item>트럭</item> <!--truck-->
-        <item>가로수</item> <!--tree_trunk-->
-        <item>신호 표지판</item> <!--traffic_sign-->
-        <item>신호등</item> <!--traffic_light-->
-        <item>테이블</item> <!--table-->
-        <item>유모차</item> <!--stroller-->
-        <item>표지판</item> <!--stop-->
-        <item>스쿠터</item> <!--scooter-->
-        <item>화단</item> <!--potted_plant-->
-        <item>봉</item> <!--pole-->
-        <item>사람</item> <!--person-->
-        <item>이동 신호기</item> <!--movable_signage-->
-        <item>오토바이</item> <!--motorcycle-->
-        <item>소화전</item> <!--fire_hydrant-->
-        <item>의자</item> <!--chair-->
-        <item>캐리어</item> <!--carrier-->
-        <item>자동차</item> <!--car-->
-        <item>버스</item> <!--bus-->
-        <item>도로안정봉</item> <!--bollard-->
-        <item>자전거</item> <!--bicycle-->
-        <item>벤치</item> <!--bench-->
-        <item>바리케이드</item> <!--barricade-->
+        <item>도로 표지판</item>
+        <item>탈것</item>
+        <item>사람</item>
+        <item>기타 장애물</item>
+
+        <!--<item>신호등</item> &lt;!&ndash;traffic_light_controller&ndash;&gt;
+        <item>전봇대</item> &lt;!&ndash;power_controller&ndash;&gt;
+        <item>휠체어</item> &lt;!&ndash;wheelchair&ndash;&gt;
+        <item>트럭</item> &lt;!&ndash;truck&ndash;&gt;
+        <item>가로수</item> &lt;!&ndash;tree_trunk&ndash;&gt;
+        <item>신호 표지판</item> &lt;!&ndash;traffic_sign&ndash;&gt;
+        <item>신호등</item> &lt;!&ndash;traffic_light&ndash;&gt;
+        <item>테이블</item> &lt;!&ndash;table&ndash;&gt;
+        <item>유모차</item> &lt;!&ndash;stroller&ndash;&gt;
+        <item>표지판</item> &lt;!&ndash;stop&ndash;&gt;
+        <item>스쿠터</item> &lt;!&ndash;scooter&ndash;&gt;
+        <item>화단</item> &lt;!&ndash;potted_plant&ndash;&gt;
+        <item>봉</item> &lt;!&ndash;pole&ndash;&gt;
+        <item>사람</item> &lt;!&ndash;person&ndash;&gt;
+        <item>이동 신호기</item> &lt;!&ndash;movable_signage&ndash;&gt;
+        <item>오토바이</item> &lt;!&ndash;motorcycle&ndash;&gt;
+        <item>소화전</item> &lt;!&ndash;fire_hydrant&ndash;&gt;
+        <item>의자</item> &lt;!&ndash;chair&ndash;&gt;
+        <item>캐리어</item> &lt;!&ndash;carrier&ndash;&gt;
+        <item>자동차</item> &lt;!&ndash;car&ndash;&gt;
+        <item>버스</item> &lt;!&ndash;bus&ndash;&gt;
+        <item>도로안정봉</item> &lt;!&ndash;bollard&ndash;&gt;
+        <item>자전거</item> &lt;!&ndash;bicycle&ndash;&gt;
+        <item>벤치</item> &lt;!&ndash;bench&ndash;&gt;
+        <item>바리케이드</item> &lt;!&ndash;barricade&ndash;&gt;-->
     </string-array>
 </resources>

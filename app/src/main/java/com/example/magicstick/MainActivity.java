@@ -3,22 +3,19 @@ package com.example.magicstick;
 import android.Manifest;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothSocket;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
-import android.preference.PreferenceManager;
-import android.provider.Settings;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -32,7 +29,6 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.skt.Tmap.TMapData;
@@ -40,8 +36,6 @@ import com.skt.Tmap.TMapPOIItem;
 import com.skt.Tmap.TMapPoint;
 import com.skt.Tmap.TMapView;
 
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.Locale;
 import java.util.Set;
@@ -90,16 +84,20 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         tMapView.setSKTMapApiKey(appKey);
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
-        setInitialStart();
-
-        if(!customizingFlag){
-            Intent customIntent = new Intent(getApplicationContext(),CustomizeObjectlist.class);
-            startActivity(customIntent);
-            customizingFlag=true;
-        }
-        String [] objectArray = getResources().getStringArray(R.array.array_object);
-        for(String s : objectArray){
-            Log.d(TAG, s);
+        if(Build.VERSION.SDK_INT>=23){
+            if((ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)!= PackageManager.PERMISSION_GRANTED)
+                    || (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED)
+                    || (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_NETWORK_STATE)!=PackageManager.PERMISSION_GRANTED)
+                    || (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_COARSE_LOCATION)!=PackageManager.PERMISSION_GRANTED)
+                    || (ContextCompat.checkSelfPermission(this,Manifest.permission.CALL_PHONE)!=PackageManager.PERMISSION_GRANTED)){
+                Intent customIntent = new Intent(getApplicationContext(), InitialSetting.class);
+                startActivity(customIntent);
+            }else {
+                Log.d("InitialSetting", "Permissions are granted");
+            }
+        }else{
+            Toast.makeText(this, "이 앱이 마이크와 위치에 접근하도록 허용합니다.",Toast.LENGTH_SHORT);
+            Log.d("InitialSetting", "Permissions are granted");
         }
 
         if(bluetoothAdapter==null){
@@ -185,10 +183,13 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                             inputVoice();
                         }
                     }
-                    // Bluetooth setting
+                    // Emergency Call
                     public void onSwipeRight() {
                         toast("swipe Right");
-                        if (bluetoothDevice == null){
+                        Intent intent = new Intent(Intent.ACTION_CALL, Uri.parse("tel:" + 01024022731));
+                        startActivity(intent);
+
+                        /*if (bluetoothDevice == null){
                             toast("no connection Bluetooth");
                             return;
                         }
@@ -203,7 +204,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                                 Intent intent = new Intent(Settings.ACTION_BLUETOOTH_SETTINGS);
                                 startActivity(intent);
                             }
-                        }
+                        }*/
                     }
                     // Disconnect
                     public void onSwipeLeft(){
@@ -214,22 +215,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         );
     }
 
-    public void setInitialStart(){
-        //Permission Request
-        if(Build.VERSION.SDK_INT>=23){
-            if((ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)!= PackageManager.PERMISSION_GRANTED)
-                    || (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED)
-                    || (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_NETWORK_STATE)!=PackageManager.PERMISSION_GRANTED)
-                    || (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_COARSE_LOCATION)!=PackageManager.PERMISSION_GRANTED)){
-                ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.RECORD_AUDIO, Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_NETWORK_STATE},1);
-            }else {
-                Log.d(TAG, "Permissions are granted");
-            }
-        }else{
-            Toast.makeText(this, "이 앱이 마이크와 위치에 접근하도록 허용합니다.",Toast.LENGTH_SHORT);
-            Log.d(TAG, "Permissions are granted");
-        }
-    }
+
 
     @Override
     protected void onStart() {
@@ -240,12 +226,6 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
             service.attach(this);
         }
 
-        /*
-        //음성출력 설정값
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-        ttsFlag=sharedPreferences.getBoolean("voice_notification",false);
-        Log.d(TAG, "ttsFlag is " + ttsFlag);
-         */
 
         // 음성출력
         tts = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
