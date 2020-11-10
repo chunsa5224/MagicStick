@@ -75,13 +75,17 @@ public class SerialService extends Service implements SerialListener {
         connected = true;
     }
 
-    public void disconnect() {
+    public boolean disconnect() {
         connected = false; // ignore data,errors while disconnecting
         cancelNotification();
         if(socket != null) {
             socket.disconnect();
             socket = null;
+            return true;
+        }else{
+            return false;
         }
+
     }
 
     public void write(byte[] data) throws IOException {
@@ -180,7 +184,7 @@ public class SerialService extends Service implements SerialListener {
     public void onSerialRead(byte[] data) {
         if(connected) {
             synchronized (this) {
-                if (listener != null) {
+                if(listener != null) {
                     mainLooper.post(() -> {
                         if (listener != null) {
                             listener.onSerialRead(data);

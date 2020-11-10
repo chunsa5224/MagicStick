@@ -12,9 +12,6 @@
     <uses-permission android:name="android.permission.VIBRATE" />
     <uses-permission android:name="android.permission.CALL_PHONE" />
 
-
-    출처: https://namget.tistory.com/entry/안드로이드-전화-걸기-전화-열기ACTIONDIALACTIONCALL [남갯,YTS의 개발,일상블로그]
-
     <application
         android:allowBackup="true"
         android:configChanges="orientation|screenSize"

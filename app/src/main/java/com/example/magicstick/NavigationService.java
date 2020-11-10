@@ -21,16 +21,18 @@ import static com.example.magicstick.NavigationActivity.GpsToMeter;
 
 public class NavigationService extends Service implements TMapGpsManager.onLocationChangedCallback, TextToSpeech.OnInitListener{
     //private static String appKey ="l7xx9ed3bc26b00f404b816bb3b6e2f44ec9";
+    final String TAG = getClass().getName();
     private TMapGpsManager tMapGps = null;
     private TextToSpeech tts;
-    final String TAG = getClass().getName();
-    public static LinkedList<String> coordinates = new LinkedList<String>();
-    public static LinkedList<String> navigation = new LinkedList<String>();
+    private Thread mThread;
+
+    static LinkedList<String> coordinates = new LinkedList<String>();
+    static LinkedList<String> navigation = new LinkedList<String>();
     static double prev_lat;
     static double prev_long;
     double curr_lat;
     double curr_long;
-    boolean wrong=false;
+    boolean wrong;
 
     @Override
     public IBinder onBind(Intent intent) {
@@ -42,44 +44,55 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
 
     @Override
     public void onCreate() {
-
-        tts = new TextToSpeech(getApplicationContext(), this);
-
-        tMapGps = new TMapGpsManager(this);
-        tMapGps.setMinTime(1000);
-        tMapGps.setMinDistance(2);
-        tMapGps.setProvider(tMapGps.GPS_PROVIDER);
-        if(tMapGps.getLocation()==new TMapPoint(0,0)){
-            tMapGps.setProvider(tMapGps.NETWORK_PROVIDER);
-        }
-        tMapGps.OpenGps();
         super.onCreate();
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d(TAG, "Background 실행~");
-
-        navigation = NavigationActivity.navigation;
-        coordinates = NavigationActivity.coordinates;
-        prev_long = Double.parseDouble(coordinates.peek().split(",")[0]);
-        prev_lat=Double.parseDouble(coordinates.peek().split(",")[1]);
-
-        Thread thread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                while(true){
-                    while(tts.isSpeaking()){
-                        //Log.d(TAG, "TTS is speaking ");
-                    }
-                    objectDetect();
-                }
-            }
-        });
-        thread.start();
-
         Log.d(TAG, "onStartCommand");
-        return START_REDELIVER_INTENT;
+        tMapGps = new TMapGpsManager(this);
+        tMapGps.setMinTime(1000);
+        tMapGps.setMinDistance(1);
+
+        tMapGps.setProvider(tMapGps.NETWORK_PROVIDER);
+/*
+        tMapGps.setProvider(tMapGps.GPS_PROVIDER);
+        if(tMapGps.getLocation()==new TMapPoint(0,0)){
+            tMapGps.setProvider(tMapGps.NETWORK_PROVIDER);
+        }
+*/
+        tMapGps.OpenGps();
+        wrong = false;
+        tts = new TextToSpeech(getApplicationContext(), this);
+
+        if(intent==null){
+            //return Service.START_STICKY;
+        }else{
+            navigation = NavigationActivity.navigation;
+            coordinates = NavigationActivity.coordinates;
+
+            /*navigation = (LinkedList<String>) intent.getSerializableExtra("Navigation");
+            coordinates = (LinkedList<String>) intent.getSerializableExtra("Coordinate");*/
+            prev_long = Double.parseDouble(coordinates.peek().split(",")[0]);
+            prev_lat=Double.parseDouble(coordinates.peek().split(",")[1]);
+
+            mThread = new Thread(new Runnable() {
+                @Override
+                public void run() {
+                    while(!Thread.currentThread().isInterrupted()){
+                        /*while(tts.isSpeaking()){
+                            //Log.d(TAG, "TTS is speaking ");
+                        }*/
+                        objectDetect();
+                    }
+                }
+            });
+            mThread.start();
+        }
+
+
+
+        return START_NOT_STICKY;
     }
 
     @Override
@@ -108,22 +121,22 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
             Log.d(TAG, "wrong route!");
             speech("경로를 벗어났습니다.");
             wrong =true;
-            onDestroy();
+            stopSelf();
         }else{
             speech("서비스 실행중");
             Log.d(TAG," Go to " + curr_lat + " , " + curr_long);
-
         }
     }
 
     @Override
     public void onDestroy() {
-        Log.d(TAG, "Service on Destroy ");
+        Log.d(TAG, "onDestroy flag " + NavigationActivity.stopFlag);
+        tts.stop();
+        tts.shutdown();
+        super.onDestroy();
+        Log.d(TAG, "Stop the Service");
+
         if(wrong || navigation.isEmpty() || NavigationActivity.stopFlag){
-            super.onDestroy();
-            Log.d(TAG, "Stop the Service");
-            tts.stop();
-            tts.shutdown();
             Log.d(TAG, "TTS Destroyed");
         }
     }

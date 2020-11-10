@@ -112,11 +112,12 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
         tMapGps.setMinTime(1000);
         tMapGps.setMinDistance(1);
 
-        tMapGps.setProvider(tMapGps.GPS_PROVIDER);
+        tMapGps.setProvider(tMapGps.NETWORK_PROVIDER);
 
+        /*tMapGps.setProvider(tMapGps.GPS_PROVIDER);
         if(tMapGps.getLocation()==new TMapPoint(0,0)){
             tMapGps.setProvider(tMapGps.NETWORK_PROVIDER);
-        }
+        }*/
 
         tMapGps.OpenGps();
 
@@ -182,6 +183,10 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
                     NodeList nodeListPlacemark = root.getElementsByTagName("Placemark");
                     Log.d(TAG,"Root element :" + root.getNodeName());
 
+                    /*LinkedList<String> coordinates = new LinkedList<String>();
+                    LinkedList<String> navigation = new LinkedList<String>();*/
+
+
                     for( int i=0; i<nodeListPlacemark.getLength(); i++ ) {
                         NodeList nodeListPlacemarkItem = nodeListPlacemark.item(i).getChildNodes();
 
@@ -198,6 +203,8 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
                         }
                     }
                     Log.d(TAG, "First Navigation");
+                    /*serviceIntent.putExtra("Coordinate", coordinates);
+                    serviceIntent.putExtra("Navigation", coordinates);*/
                     startService(serviceIntent);
                 }
 
