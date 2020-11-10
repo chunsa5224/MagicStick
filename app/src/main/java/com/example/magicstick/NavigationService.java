@@ -145,14 +145,22 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
         String object = SerialService.object;
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
         Set<String> objectList = sharedPreferences.getStringSet("object_list",null);
+
+        String [] detect = object.split(" ");
+        for(int i=0; i<detect.length; i++){
+            detect[i] = detect[i].replaceAll("_", " ");
+        }
+        String speak = "";
         if(object!=null){
-            SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-            Set<String> customList = sharedPreferences.getStringSet("object_list2", null);
-            if(customList.contains(object)){
-                speech(object + "가 전방에 있습니다.");
-                Log.d(TAG, object + "가 전방에 있습니다.");
+            for(String s: detect){
+                if(objectList.contains(s)){
+                    speak += s;
+                }
             }
-                SerialService.object=null;
+
+            speech("Watch out for "+speak);
+            Log.d(TAG, "Watch out for "+speak);
+            SerialService.object=null;
         }
     }
 

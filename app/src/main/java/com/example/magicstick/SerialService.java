@@ -194,9 +194,11 @@ public class SerialService extends Service implements SerialListener {
                         }
                     });
                 } else {
-                    object = new String (data);
-                    queue2.add(new QueueItem(QueueType.Read, data, null));
-                    Log.d(getClass().getName(), "Result2 : " + new String(data));
+                    if(!data.equals("check")){
+                        object = new String (data);
+                        queue2.add(new QueueItem(QueueType.Read, data, null));
+                        Log.d(getClass().getName(), "Result2 : " + new String(data));
+                    }
                 }
             }
         }

@@ -7,6 +7,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
@@ -16,6 +17,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
+import android.preference.PreferenceManager;
 import android.speech.RecognitionListener;
 import android.speech.RecognizerIntent;
 import android.speech.SpeechRecognizer;
@@ -83,6 +85,8 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         tMapView = new TMapView(getApplicationContext());
         tMapView.setSKTMapApiKey(appKey);
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
+
+
 
         if(Build.VERSION.SDK_INT>=23){
             if((ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)!= PackageManager.PERMISSION_GRANTED)
@@ -173,10 +177,10 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
 
                     }
                     public void onSwipeBottom() {
+                        toast("swipe bottom");
                         Log.d(TAG, "TTS State : "+isTtsFlag);
                         if(!isTtsFlag){
                             // Emergency Call
-                            toast("swipe bottom");
                             String tel = "tel:01024022731";
                             Intent intent = new Intent(Intent.ACTION_CALL, Uri.parse(tel));
                             startActivity(intent);
@@ -194,6 +198,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                         Log.d(TAG, "bluetooth : "+bluetoothDeviceSet);
                         focusFlag=true;
                         if(connect()){
+                            speech("연결을 성공하였습니다.");
                             Log.d(TAG, "connect");
                         }
                     }
@@ -202,7 +207,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                         toast("swipe Left");
                         if(disconnect()){
                             Log.d(TAG,"Disconnect");
-                            tts.speak("연결이 해제되었습니다.",TextToSpeech.QUEUE_FLUSH,null);
+                            speech("연결이 해제되었습니다.");
                         }
                     }
                 }
@@ -298,6 +303,11 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         return super.onOptionsItemSelected(item);
     }
 
+    /*public void settingClick(){
+        Intent intentSubActivity = new Intent(this, SettingActivity.class);
+        startActivity(intentSubActivity);
+    }*/
+
 
     public class FindPOI extends Thread{
 
@@ -332,8 +342,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
             while(location==null){}
             Log.d(TAG, "목적지 : " + location);
             String speak = location + " 를 목적지로 정하시겠어요?";
-
-            tts.speak(speak,TextToSpeech.QUEUE_FLUSH,null);
+            speech(speak);
             Thread.currentThread().interrupt();
         }
 
@@ -389,6 +398,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
 
 
             service.connect(socket);
+
             return true;
 
         } catch (Exception e) {
@@ -437,12 +447,33 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     }
 
     private void receive(byte[] data) {
-        String object = new String(data);
         if(focusFlag){
+            SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+            Set<String> objectList = sharedPreferences.getStringSet("object_list",null);
+
+            String object = new String(data);
+            String [] detect = object.split(" ");
+            for(int i=0; i<detect.length; i++){
+                detect[i] = detect[i].replaceAll("_", " ");
+            }
+            String speak = "";
+            if(object!=null){
+                for(String s: detect){
+                    if(objectList.contains(s)){
+                        speak += s;
+                    }
+                }
+                speech("Watch out for "+ speak);
+                Log.d(TAG, "Watch out for "+speak);
+                SerialService.object=null;
+            }
+
+        }
+        /*if(focusFlag){
             Log.d(TAG, "Detect ! "+object);
             tts.speak(object,TextToSpeech.QUEUE_FLUSH,null);
             toast(object);
-        }
+        }*/
     }
 
     @Override
@@ -560,7 +591,9 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
             Toast.makeText(getApplicationContext(), "지팡이를 찾을수 없습니다.", Toast.LENGTH_SHORT).show();
         }
     };
-
+    private void speech(String msg) {
+        tts.speak(msg, TextToSpeech.QUEUE_FLUSH,null);
+    }
     private void toast(String msg){
         Toast.makeText(this ,msg, Toast.LENGTH_LONG).show();
     }
