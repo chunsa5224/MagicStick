@@ -240,7 +240,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
             @Override
             public void onInit(int status) {
                 if(status!= TextToSpeech.ERROR){
-                    tts.setLanguage(Locale.ENGLISH);
+                    tts.setLanguage(Locale.KOREA);
                 }
             }
         });
@@ -257,7 +257,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
             @Override
             public void onInit(int status) {
                 if(status!= TextToSpeech.ERROR){
-                    tts.setLanguage(Locale.ENGLISH);
+                    tts.setLanguage(Locale.KOREA);
                 }
             }
         });
@@ -469,7 +469,8 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
             String [] detect = object.split(" ");
 
             for(int i=0; i<detect.length; i++){
-                detect[i] = detect[i].replaceAll(" ", "");
+                /*detect[i] = detect[i].replaceAll(" ", "");*/
+                detect[i] = detect[i].replaceAll("_", " ");
             }
 
 

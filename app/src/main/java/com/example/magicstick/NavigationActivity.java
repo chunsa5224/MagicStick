@@ -32,6 +32,7 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
     private TMapView tMapView =null;
     private boolean m_bTrackingMode = true;
     public static boolean stopFlag=false;
+    FindPath findPath = new FindPath();
 
     TMapPoint startPoint;
     TMapPoint endPoint;
@@ -84,7 +85,7 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
         if(m_bTrackingMode){
             tMapView.setLocationPoint(location.getLongitude(),location.getLatitude());
         }
-        FindPath findPath = new FindPath();
+
         if(nullLocation) {
             startPoint = new TMapPoint(location.getLatitude(), location.getLongitude());
             Thread thread = new Thread(findPath);

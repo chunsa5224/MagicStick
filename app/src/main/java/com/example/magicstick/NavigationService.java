@@ -10,7 +10,6 @@ import android.speech.tts.TextToSpeech;
 import android.util.Log;
 
 import com.skt.Tmap.TMapGpsManager;
-import com.skt.Tmap.TMapPoint;
 
 import java.util.LinkedList;
 import java.util.Locale;
@@ -28,6 +27,7 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
 
     static LinkedList<String> coordinates = new LinkedList<String>();
     static LinkedList<String> navigation = new LinkedList<String>();
+    static Set<String> objectList;
     static double prev_lat;
     static double prev_long;
     double curr_lat;
@@ -52,7 +52,7 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
         Log.d(TAG, "onStartCommand");
         tMapGps = new TMapGpsManager(this);
         tMapGps.setMinTime(1000);
-        tMapGps.setMinDistance(1);
+        tMapGps.setMinDistance(2);
 
         /*tMapGps.setProvider(tMapGps.NETWORK_PROVIDER);*/
         tMapGps.setProvider(tMapGps.GPS_PROVIDER);
@@ -65,33 +65,29 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
         wrong = false;
         tts = new TextToSpeech(getApplicationContext(), this);
 
-        if(intent==null){
-            //return Service.START_STICKY;
-        }else{
-            navigation = NavigationActivity.navigation;
-            coordinates = NavigationActivity.coordinates;
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+        objectList = sharedPreferences.getStringSet("object_list1",null);
 
-            /*navigation = (LinkedList<String>) intent.getSerializableExtra("Navigation");
-            coordinates = (LinkedList<String>) intent.getSerializableExtra("Coordinate");*/
-            prev_long = Double.parseDouble(coordinates.peek().split(",")[0]);
-            prev_lat=Double.parseDouble(coordinates.peek().split(",")[1]);
+        navigation = NavigationActivity.navigation;
+        coordinates = NavigationActivity.coordinates;
 
-            mThread = new Thread(new Runnable() {
-                @Override
-                public void run() {
-                    while(!Thread.currentThread().isInterrupted()){
-                        while(tts.isSpeaking()){
-                            //Log.d(TAG, "TTS is speaking ");
-                        }
-                        objectDetect();
+        /*navigation = (LinkedList<String>) intent.getSerializableExtra("Navigation");
+        coordinates = (LinkedList<String>) intent.getSerializableExtra("Coordinate");*/
+        prev_long = Double.parseDouble(coordinates.peek().split(",")[0]);
+        prev_lat=Double.parseDouble(coordinates.peek().split(",")[1]);
+
+        mThread = new Thread(new Runnable() {
+            @Override
+            public void run() {
+                while(!Thread.currentThread().isInterrupted()){
+                    while(tts.isSpeaking()){
+                        //Log.d(TAG, "TTS is speaking ");
                     }
+                    objectDetect();
                 }
-            });
-            mThread.start();
-        }
-
-
-
+            }
+        });
+        mThread.start();
         return START_NOT_STICKY;
     }
 
@@ -104,10 +100,10 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
         double latitude = location.getLatitude();
         curr_long= Double.parseDouble(peek.split(",")[0]);
         curr_lat=Double.parseDouble(peek.split(",")[1]);
-        Log.d(TAG, "current : " + curr_lat + "," +curr_long);
+        Log.d(TAG, "current : " +curr_long + "," + curr_lat );
 
         double dist = GpsToMeter(latitude,longitude,curr_lat,curr_long);
-        Log.d(TAG, "기준 좌표: "+curr_long +", " + curr_lat + "현위치 :" +longitude  + ", " + latitude + " 거리 :" + dist);
+        Log.d(TAG, "기준 좌표: "+curr_long +", " + curr_lat + " 현위치 :" +longitude  + ", " + latitude + " 거리 :" + dist);
 
         if(dist<=5){
             Log.d(TAG, "Current navigation : " + navigation.peek());
@@ -121,6 +117,12 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
             Log.d(TAG, "wrong route!");
             speech("경로를 벗어났습니다.");
             wrong =true;
+            // navigationActivity 를 실행해야될듯
+            /*Intent intent = new Intent(getApplicationContext(), NavigationActivity.class);
+            intent.putExtra("destination", destination);
+            intent.putExtra("d_latitude", latitude);
+            intent.putExtra("d_longitude", longitude);
+            startActivity(intent);*/
             stopSelf();
         }else{
             speech("서비스 실행중");
@@ -143,26 +145,28 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
 
     public void objectDetect(){
         String object = SerialService.object;
-        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-        Set<String> objectList = sharedPreferences.getStringSet("object_list1",null);
-        Log.d(TAG,"detect ! " + object);
-        String [] detect = object.split(" ");
-        for(int i=0; i<detect.length; i++){
-            detect[i] = detect[i].replaceAll("_", " ");
-        }
-        String speak = "";
+
         if(object!=null){
-            for(String s: detect){
-                if(objectList.contains(s)){
-                    speak += s;
+            object = object.replaceAll("\n","");
+            Log.d(TAG,"detect ! " + object);
+            String [] detect = object.split(" ");
+            for(int i=0; i<detect.length; i++){
+                detect[i] = detect[i].replaceAll("_", " ");
+            }
+            String speak = "";
+            if(detect.length>0){
+                for(String s: detect){
+                    if(objectList.contains(s)){
+                        speak += s;
+                    }
                 }
-            }
-            if(speak!=null){
-                speech("Watch out for "+speak);
-                Log.d(TAG, "Watch out for "+speak);
-            }
-            SerialService.object=null;
+                if(speak!=null){
+                    speech("Watch out for "+speak);
+                    Log.d(TAG, "Watch out for "+speak);
+                }
+                SerialService.object=null;
         }
+    }
     }
 
     boolean wrongRoute(double latitude,double longitude){
