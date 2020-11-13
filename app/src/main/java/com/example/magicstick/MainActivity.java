@@ -50,7 +50,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     private SpeechRecognizer mRecognizer;
     private Runnable runnable;
     private boolean ttsFlag = true;
-    private boolean focusFlag = false;
+    private boolean focusFlag = true;
     private boolean customizingFlag = false;
     Intent intent;
 
@@ -114,11 +114,11 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         // SWIPE
         View view = findViewById(R.id.background_view);
         view.setOnTouchListener(new OnSwipeTouchListener(this) {
-                    // Object Detection + Navigation
+                    // Navigation
                     public void onSwipeTop() {
 
                         toast("swipe top");
-                        if(isTtsFlag){
+                        /*if(isTtsFlag){
                             isTtsFlag=false;
                             //editText.setText(destination);
                             Log.d(TAG, editText.getText().toString());
@@ -134,8 +134,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                             // 목적지 입력 process
                             isTtsFlag=true;
                             SpeechToText();
-                        }
-                        /*
+                        }*/
                         // 네트워크 연결 확인
                         ConnectivityManager cm = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
                         NetworkInfo ni = cm.getActiveNetworkInfo();
@@ -150,7 +149,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                                     mRecognizer.stopListening();
 
                                     Intent intent1 = new Intent(getApplicationContext(), NavigationActivity.class);
-                                    intent1.putExtra("destination", editText.getText().toString());
+                                    intent1.putExtra("destination", destination);
                                     intent1.putExtra("d_latitude", latitude);
                                     intent1.putExtra("d_longitude", longitude);
                                     startActivity(intent1);
@@ -166,7 +165,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                             }
                         }else{
                             toast("데이터 연결을 해주세요!");
-                        }*/
+                        }
 
                         /* 디버깅용
                         Intent intent1 = new Intent(getApplicationContext(), NavigationActivity.class);
@@ -190,21 +189,21 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                     }
                     // Bluetooth Connection and object detection
                     public void onSwipeRight() {
-                        toast("swipe Right");
+                        toast("swipe right");
                         //블루투스 On
                         bluetoothAdapter.enable();
 
                         bluetoothDeviceSet = bluetoothAdapter.getBondedDevices();
                         Log.d(TAG, "bluetooth : "+bluetoothDeviceSet);
-                        focusFlag=true;
+                        /*focusFlag=true;*/
                         if(connect()){
-                            speech("연결을 성공하였습니다.");
                             Log.d(TAG, "connect");
+                            speech("연결을 성공하였습니다.");
                         }
                     }
                     // Disconnect
                     public void onSwipeLeft(){
-                        toast("swipe Left");
+                        toast("swipe left");
                         if(disconnect()){
                             Log.d(TAG,"Disconnect");
                             speech("연결이 해제되었습니다.");
@@ -212,6 +211,16 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                     }
                 }
         );
+
+        view.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v) {
+                speech("도움말입니당");
+                toast("Long click");
+                Log.d(TAG, "Long Click Event");
+                return true;
+            }
+        });
     }
 
 
@@ -231,7 +240,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
             @Override
             public void onInit(int status) {
                 if(status!= TextToSpeech.ERROR){
-                    tts.setLanguage(Locale.KOREAN);
+                    tts.setLanguage(Locale.ENGLISH);
                 }
             }
         });
@@ -248,7 +257,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
             @Override
             public void onInit(int status) {
                 if(status!= TextToSpeech.ERROR){
-                    tts.setLanguage(Locale.KOREAN);
+                    tts.setLanguage(Locale.ENGLISH);
                 }
             }
         });
@@ -269,6 +278,9 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
             this.unbindService(this);
         }
         Log.d(TAG, "Main Activity is on Stop");
+        focusFlag=false;
+        tts.stop();
+        tts.shutdown();
         super.onStop();
         if(mRecognizer!=null) mRecognizer.destroy(); //mRecognizer.stopListening();//
     }
@@ -394,7 +406,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
             connected = Connected.Pending;
             SerialSocket socket = new SerialSocket(this.getApplicationContext(), device);
             Log.d(TAG, "get socket : "+socket.getName());
-            toast(socket.getName());
+            //toast(socket.getName());
 
 
             service.connect(socket);
@@ -449,22 +461,34 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     private void receive(byte[] data) {
         if(focusFlag){
             SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-            Set<String> objectList = sharedPreferences.getStringSet("object_list",null);
+            Set<String> objectList = sharedPreferences.getStringSet("object_list1",null);
 
             String object = new String(data);
+            object = object.replaceAll("\n","");
+            Log.d(TAG,"detect ~ "+object);
             String [] detect = object.split(" ");
+
             for(int i=0; i<detect.length; i++){
-                detect[i] = detect[i].replaceAll("_", " ");
+                detect[i] = detect[i].replaceAll(" ", "");
             }
-            String speak = "";
-            if(object!=null){
+
+
+            if(detect.length>0){
+                String speak = "";
                 for(String s: detect){
                     if(objectList.contains(s)){
                         speak += s;
+                        Log.d(TAG, "speak : " + s +"!");
                     }
                 }
-                speech("Watch out for "+ speak);
-                Log.d(TAG, "Watch out for "+speak);
+                while(tts.isSpeaking()){
+                    Log.d(TAG, "TTS is speaking");
+                }
+                if(!speak.equals("")){
+                    speak = "Watch out for " + speak;
+                    speech(speak);
+                    Log.d(TAG, speak);
+                }
                 SerialService.object=null;
             }
 
@@ -591,7 +615,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
             Toast.makeText(getApplicationContext(), "지팡이를 찾을수 없습니다.", Toast.LENGTH_SHORT).show();
         }
     };
-    private void speech(String msg) {
+    public void speech(String msg) {
         tts.speak(msg, TextToSpeech.QUEUE_FLUSH,null);
     }
     private void toast(String msg){

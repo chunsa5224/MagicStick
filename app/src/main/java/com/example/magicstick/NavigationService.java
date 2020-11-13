@@ -54,9 +54,9 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
         tMapGps.setMinTime(1000);
         tMapGps.setMinDistance(1);
 
-        tMapGps.setProvider(tMapGps.NETWORK_PROVIDER);
-/*
+        /*tMapGps.setProvider(tMapGps.NETWORK_PROVIDER);*/
         tMapGps.setProvider(tMapGps.GPS_PROVIDER);
+/*
         if(tMapGps.getLocation()==new TMapPoint(0,0)){
             tMapGps.setProvider(tMapGps.NETWORK_PROVIDER);
         }
@@ -80,9 +80,9 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
                 @Override
                 public void run() {
                     while(!Thread.currentThread().isInterrupted()){
-                        /*while(tts.isSpeaking()){
+                        while(tts.isSpeaking()){
                             //Log.d(TAG, "TTS is speaking ");
-                        }*/
+                        }
                         objectDetect();
                     }
                 }
@@ -144,8 +144,8 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
     public void objectDetect(){
         String object = SerialService.object;
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
-        Set<String> objectList = sharedPreferences.getStringSet("object_list",null);
-
+        Set<String> objectList = sharedPreferences.getStringSet("object_list1",null);
+        Log.d(TAG,"detect ! " + object);
         String [] detect = object.split(" ");
         for(int i=0; i<detect.length; i++){
             detect[i] = detect[i].replaceAll("_", " ");
@@ -157,9 +157,10 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
                     speak += s;
                 }
             }
-
-            speech("Watch out for "+speak);
-            Log.d(TAG, "Watch out for "+speak);
+            if(speak!=null){
+                speech("Watch out for "+speak);
+                Log.d(TAG, "Watch out for "+speak);
+            }
             SerialService.object=null;
         }
     }

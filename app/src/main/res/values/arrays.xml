@@ -1,40 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string-array name="array_object">
-        <item>탈것</item>
-        <item>사람</item>
-        <item>신호등</item>
-        <item>버스 정류장</item>
-        <item>대형 장애물</item>
-        <item>소형 장애물</item>
-        <item>기둥</item>
-        <item>끌것</item>
-        <item>앉을것</item>
-
-        <!--<item>신호제어기</item> &lt;!&ndash;traffic_light_controller&ndash;&gt;
-        <item>전력제어함</item> &lt;!&ndash;power_controller&ndash;&gt;
-        <item>휠체어</item> &lt;!&ndash;wheelchair&ndash;&gt;
-        <item>트럭</item> &lt;!&ndash;truck&ndash;&gt;
-        <item>가로수</item> &lt;!&ndash;tree_trunk&ndash;&gt;
-        <item>교통 표지판</item> &lt;!&ndash;traffic_sign&ndash;&gt;
-        <item>신호등</item> &lt;!&ndash;traffic_light&ndash;&gt;
-        <item>테이블</item> &lt;!&ndash;table&ndash;&gt;
-        <item>유모차</item> &lt;!&ndash;stroller&ndash;&gt;
-        <item>버스 정류장</item> &lt;!&ndash;stop&ndash;&gt;
-        <item>스쿠터</item> &lt;!&ndash;scooter&ndash;&gt;
-        <item>화분</item> &lt;!&ndash;potted_plant&ndash;&gt;
-        <item>기둥</item> &lt;!&ndash;pole&ndash;&gt;
-        <item>사람</item> &lt;!&ndash;person&ndash;&gt;
-        <item>이동 신호기</item> &lt;!&ndash;movable_signage&ndash;&gt;
-        <item>오토바이</item> &lt;!&ndash;motorcycle&ndash;&gt;
-        <item>소화전</item> &lt;!&ndash;fire_hydrant&ndash;&gt;
-        <item>의자</item> &lt;!&ndash;chair&ndash;&gt;
-        <item>손수레</item> &lt;!&ndash;carrier&ndash;&gt;
-        <item>자동차</item> &lt;!&ndash;car&ndash;&gt;
-        <item>버스</item> &lt;!&ndash;bus&ndash;&gt;
-        <item>도로안봉</item> &lt;!&ndash;bollard&ndash;&gt;
-        <item>자전거</item> &lt;!&ndash;bicycle&ndash;&gt;
-        <item>벤치</item> &lt;!&ndash;bench&ndash;&gt;
-        <item>바리케이드</item> &lt;!&ndash;barricade&ndash;&gt;-->
+        <item>traffic_light_controller</item>
+        <item>power_controller</item>
+        <item>wheelchair</item>
+        <item>truck</item>
+        <item>tree_trunk</item>
+        <item>traffic_sign</item>
+        <item>table</item>
+        <item>stroller</item>
+        <item>stop</item>
+        <item>scooter</item>
+        <item>potted_plant</item>
+        <item>pole</item>
+        <item>person</item>
+        <item>movable_signage</item>
+        <item>motorcycle</item>
+        <item>fire_hydrant</item>
+        <item>chair</item>
+        <item>carrier</item>
+        <item>car</item>
+        <item>bus</item>
+        <item>bollard</item>
+        <item>bicycle</item>
+        <item>bench</item>
+        <item>barricade</item>
     </string-array>
 </resources>

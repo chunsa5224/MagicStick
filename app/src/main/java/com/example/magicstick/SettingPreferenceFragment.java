@@ -34,6 +34,8 @@ public class SettingPreferenceFragment extends PreferenceFragment {
     SharedPreferences.OnSharedPreferenceChangeListener prefListener = new SharedPreferences.OnSharedPreferenceChangeListener() {
         @Override
         public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+
+
         }
     };
 

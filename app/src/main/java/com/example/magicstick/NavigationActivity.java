@@ -112,10 +112,10 @@ public class NavigationActivity extends AppCompatActivity implements TMapGpsMana
         tMapGps.setMinTime(1000);
         tMapGps.setMinDistance(1);
 
-        tMapGps.setProvider(tMapGps.NETWORK_PROVIDER);
+        /*tMapGps.setProvider(tMapGps.NETWORK_PROVIDER);*/
 
-        /*tMapGps.setProvider(tMapGps.GPS_PROVIDER);
-        if(tMapGps.getLocation()==new TMapPoint(0,0)){
+        tMapGps.setProvider(tMapGps.GPS_PROVIDER);
+        /*if(tMapGps.getLocation()==new TMapPoint(0,0)){
             tMapGps.setProvider(tMapGps.NETWORK_PROVIDER);
         }*/
 

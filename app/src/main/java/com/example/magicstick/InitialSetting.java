@@ -52,6 +52,7 @@ public class InitialSetting extends AppCompatActivity {
         tts.speak(objectArray[0],TextToSpeech.QUEUE_FLUSH,null);
 
         View view = findViewById(R.id.background_view);
+
         view.setOnTouchListener(new OnSwipeTouchListener(this){
 
             SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
