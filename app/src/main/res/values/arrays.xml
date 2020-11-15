@@ -2,6 +2,7 @@
 <resources>
     <string-array name="array_object">
         <item>traffic_light_controller</item>
+        <item>traffic_light</item>
         <item>power_controller</item>
         <item>wheelchair</item>
         <item>truck</item>

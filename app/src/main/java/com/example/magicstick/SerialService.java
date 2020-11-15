@@ -75,15 +75,12 @@ public class SerialService extends Service implements SerialListener {
         connected = true;
     }
 
-    public boolean disconnect() {
+    public void disconnect() {
         connected = false; // ignore data,errors while disconnecting
         cancelNotification();
         if(socket != null) {
             socket.disconnect();
             socket = null;
-            return true;
-        }else{
-            return false;
         }
 
     }
@@ -189,16 +186,18 @@ public class SerialService extends Service implements SerialListener {
                         if (listener != null) {
                             listener.onSerialRead(data);
                         } else {
+                            object = new String (data);
+                            object = object.replaceAll("check","");
                             queue1.add(new QueueItem(QueueType.Read, data, null));
                             Log.d(getClass().getName(), "Result1 : " + new String(data));
                         }
                     });
                 } else {
-                    if(!data.equals("check")){
-                        object = new String (data);
-                        queue2.add(new QueueItem(QueueType.Read, data, null));
-                        Log.d(getClass().getName(), "Result2 : " + new String(data));
-                    }
+                    object = new String (data);
+                    object = object.replaceAll("check","");
+                    queue2.add(new QueueItem(QueueType.Read, data, null));
+                    Log.d(getClass().getName(), "Result2 : " + new String(data));
+
                 }
             }
         }

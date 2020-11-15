@@ -22,11 +22,14 @@ import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
 
+import static com.example.magicstick.MainActivity.speech;
+import static com.example.magicstick.MainActivity.tts;
+
 public class InitialSetting extends AppCompatActivity {
 
     static int i=0;
     static String [] objectArray;
-
+    /*TextToSpeech tts;*/
     TextView textView;
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -36,20 +39,22 @@ public class InitialSetting extends AppCompatActivity {
         setContentView(R.layout.activity_customize_objectlist);
         textView = findViewById(R.id.textView2);
         setInitialStart();
-        TextToSpeech tts = new android.speech.tts.TextToSpeech(getApplicationContext(), new android.speech.tts.TextToSpeech.OnInitListener() {
+        /*tts = new android.speech.tts.TextToSpeech(getApplicationContext(), new android.speech.tts.TextToSpeech.OnInitListener() {
             @Override
             public void onInit(int status) {
             }
         });
-
         tts.setLanguage(Locale.KOREAN);
         tts.setPitch(1.0f);
-        tts.setSpeechRate(1.0f);
-        tts.speak("지금부터 장애물 설정을 하겠습니다.",TextToSpeech.QUEUE_FLUSH,null);
+        tts.setSpeechRate(1.0f);*/
+
+        speech("지금부터 장애물 설정을 하겠습니다.");
+
 
         objectArray = getResources().getStringArray(R.array.array_object);
         textView.setText(objectArray[0]);
-        tts.speak(objectArray[0],TextToSpeech.QUEUE_FLUSH,null);
+
+        speech(objectArray[0]);
 
         View view = findViewById(R.id.background_view);
 
@@ -67,7 +72,7 @@ public class InitialSetting extends AppCompatActivity {
                     i++;
                     if (i < objectArray.length) {
                         textView.setText(objectArray[i]);
-                        tts.speak(objectArray[i],TextToSpeech.QUEUE_FLUSH,null);
+                        speech(objectArray[i]);
                     }else {
                         editor.putStringSet("object_list1", currArray);
                         editor.commit();
@@ -84,7 +89,7 @@ public class InitialSetting extends AppCompatActivity {
                     i++;
                     if (i < objectArray.length) {
                         textView.setText(objectArray[i]);
-                        tts.speak(objectArray[i],TextToSpeech.QUEUE_FLUSH,null);
+                        speech(objectArray[i]);
                     }else{
                         editor.putStringSet("object_list1", currArray);
                         editor.commit();
@@ -115,5 +120,10 @@ public class InitialSetting extends AppCompatActivity {
             Log.d("InitialSetting", "Permissions are granted");
         }
     }
+
+    /*public void speech(String msg) {
+        while(tts.isSpeaking()){}
+        tts.speak(msg, TextToSpeech.QUEUE_FLUSH,null);
+    }*/
 
 }

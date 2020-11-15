@@ -49,18 +49,18 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d(TAG, "onStartCommand");
+        /*Log.d(TAG, "onStartCommand");
         tMapGps = new TMapGpsManager(this);
         tMapGps.setMinTime(1000);
         tMapGps.setMinDistance(2);
 
-        /*tMapGps.setProvider(tMapGps.NETWORK_PROVIDER);*/
+        *//*tMapGps.setProvider(tMapGps.NETWORK_PROVIDER);*//*
         tMapGps.setProvider(tMapGps.GPS_PROVIDER);
-/*
+*//*
         if(tMapGps.getLocation()==new TMapPoint(0,0)){
             tMapGps.setProvider(tMapGps.NETWORK_PROVIDER);
         }
-*/
+*//*
         tMapGps.OpenGps();
         wrong = false;
         tts = new TextToSpeech(getApplicationContext(), this);
@@ -71,8 +71,8 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
         navigation = NavigationActivity.navigation;
         coordinates = NavigationActivity.coordinates;
 
-        /*navigation = (LinkedList<String>) intent.getSerializableExtra("Navigation");
-        coordinates = (LinkedList<String>) intent.getSerializableExtra("Coordinate");*/
+        *//*navigation = (LinkedList<String>) intent.getSerializableExtra("Navigation");
+        coordinates = (LinkedList<String>) intent.getSerializableExtra("Coordinate");*//*
         prev_long = Double.parseDouble(coordinates.peek().split(",")[0]);
         prev_lat=Double.parseDouble(coordinates.peek().split(",")[1]);
 
@@ -87,7 +87,7 @@ public class NavigationService extends Service implements TMapGpsManager.onLocat
                 }
             }
         });
-        mThread.start();
+        mThread.start();*/
         return START_NOT_STICKY;
     }
 

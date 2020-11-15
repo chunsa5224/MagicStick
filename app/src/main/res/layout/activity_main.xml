@@ -74,6 +74,13 @@
 
         </LinearLayout>
 
+        <ImageView
+            android:id="@+id/imageView2"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="15dp"
+            app:srcCompat="@drawable/main" />
+
         <!--<TableLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
