@@ -27,4 +27,47 @@
         <item>bench</item>
         <item>barricade</item>
     </string-array>
+    <string-array name="vehicle">
+        <item>truck</item>
+        <item>scooter</item>
+        <item>motorcycle</item>
+        <item>car</item>
+        <item>bus</item>
+        <item>bicycle</item>
+    </string-array>
+    <string-array name="person">
+        <item>person</item>
+    </string-array>
+    <string-array name="traffic_light">
+        <item>traffic_light</item>
+    </string-array>
+    <string-array name="stop">
+        <item>stop</item>
+    </string-array>
+    <string-array name="pole">
+        <item>tree_trunk</item>
+        <item>pole</item>
+    </string-array>
+    <string-array name="big_obstacle">
+        <item>traffic_light_controller</item>
+        <item>power_controller</item>
+        <item>barricade</item>
+    </string-array>
+    <string-array name="small_obstacle">
+        <item>traffic_sign</item>
+        <item>potted_plant</item>
+        <item>movable_signage</item>
+        <item>fire_hydrant</item>
+        <item>bollard</item>
+    </string-array>
+    <string-array name="chair">
+        <item>table</item>
+        <item>chair</item>
+        <item>bench</item>
+    </string-array>
+    <string-array name="carrier">
+        <item>wheelchair</item>
+        <item>stroller</item>
+        <item>carrier</item>
+    </string-array>
 </resources>

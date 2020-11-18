@@ -10,4 +10,7 @@
     <string name="pairing_request">PAIRING requested\n-> Perform pairing steps. Connect again</string>
     <string name="title_activity_customize_object_list">customizeObjectList</string>
 
+    <!-- TODO: Remove or change this placeholder text -->
+    <string name="hello_blank_fragment">Hello blank fragment</string>
+
 </resources>

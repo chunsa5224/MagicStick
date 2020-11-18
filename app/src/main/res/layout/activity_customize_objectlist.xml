@@ -1,13 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/background_view"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="#000033"
     android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/textView2"
+    <ImageView
+        android:id="@+id/imageView3"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="TextView" />
+        app:srcCompat="@drawable/initial"
+        android:layout_marginVertical="35dp"/>
 </LinearLayout>

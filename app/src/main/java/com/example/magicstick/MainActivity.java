@@ -35,6 +35,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import com.skt.Tmap.TMapData;
@@ -84,6 +85,8 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
     @SuppressLint("ClickableViewAccessibility")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        setTheme(R.style.SplashTheme);
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         editText = (EditText)findViewById(R.id.editText);
@@ -91,14 +94,27 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         tMapView.setSKTMapApiKey(appKey);
         bluetoothAdapter = BluetoothAdapter.getDefaultAdapter();
 
+        tts = new TextToSpeech(getApplicationContext(), status -> {
+            while(status!=TextToSpeech.SUCCESS);
+            if(status!= TextToSpeech.ERROR){
+                tts.setLanguage(Locale.KOREA);
+                //tts.playSilence(10000, TextToSpeech.QUEUE_ADD,null);
+            }
+        });
+        tts.setPitch(1.0f);
+        tts.setSpeechRate(1.0f);
 
+        /*Intent customIntent = new Intent(getApplicationContext(), InitialSetting.class);
+        startActivity(customIntent);*/
 
         if(Build.VERSION.SDK_INT>=23){
             if((ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO)!= PackageManager.PERMISSION_GRANTED)
                     || (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_FINE_LOCATION)!=PackageManager.PERMISSION_GRANTED)
                     || (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_NETWORK_STATE)!=PackageManager.PERMISSION_GRANTED)
                     || (ContextCompat.checkSelfPermission(this,Manifest.permission.ACCESS_COARSE_LOCATION)!=PackageManager.PERMISSION_GRANTED)
-                    || (ContextCompat.checkSelfPermission(this,Manifest.permission.CALL_PHONE)!=PackageManager.PERMISSION_GRANTED)){
+                    || (ContextCompat.checkSelfPermission(this,Manifest.permission.CALL_PHONE)!=PackageManager.PERMISSION_GRANTED)
+                    || (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS))!=PackageManager.PERMISSION_GRANTED){
+                /*ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.RECORD_AUDIO, Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_NETWORK_STATE, Manifest.permission.CALL_PHONE, Manifest.permission.READ_CONTACTS},1);*/
                 Intent customIntent = new Intent(getApplicationContext(), InitialSetting.class);
                 startActivity(customIntent);
             }else {
@@ -118,16 +134,6 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
 
 
 
-        tts = new TextToSpeech(getApplicationContext(), new TextToSpeech.OnInitListener() {
-            @Override
-            public void onInit(int status) {
-                if(status!= TextToSpeech.ERROR){
-                    tts.setLanguage(Locale.KOREA);
-                }
-            }
-        });
-        tts.setPitch(1.0f);
-        tts.setSpeechRate(1.0f);
 
         SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         objectList = sharedPreferences.getStringSet("object_list1",null);
@@ -151,7 +157,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
             public void onSwipeTop() {
 
                 toast("swipe top");
-                if(isTtsFlag){
+                /*if(isTtsFlag){
                     isTtsFlag=false;
                     //editText.setText(destination);
                     Log.d(TAG, editText.getText().toString());
@@ -167,9 +173,9 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                     // 목적지 입력 process
                     isTtsFlag=true;
                     SpeechToText();
-                }
+                }*/
                 // 네트워크 연결 확인
-                /*ConnectivityManager cm = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
+                ConnectivityManager cm = (ConnectivityManager)getSystemService(Context.CONNECTIVITY_SERVICE);
                 NetworkInfo ni = cm.getActiveNetworkInfo();
                 if(ni.isConnected() && ni!=null){
                     if(ni.getType()==ConnectivityManager.TYPE_MOBILE){
@@ -198,7 +204,7 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
                     }
                 }else{
                     toast("데이터 연결을 해주세요!");
-                }*/
+                }
 
                 /* 디버깅용
                 Intent intent1 = new Intent(getApplicationContext(), NavigationActivity.class);
@@ -642,6 +648,9 @@ public class MainActivity extends AppCompatActivity implements ServiceConnection
         }
     };
     public static void speech(String msg) {
+        while(tts.getEngines()==null){
+            Log.d("TTS engine", "Wait for bounding");
+        }
         while(tts.isSpeaking()){}
         tts.speak(msg, TextToSpeech.QUEUE_FLUSH,null);
     }
